@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use Filament\Pages\Page;
+use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use App\Models\Organization;
+
+class SelectOrganization extends Page
+{
+    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static ?string $title = 'Chọn phông làm việc';
+    protected static string $view = 'filament.pages.select-organization';
+    protected static bool $shouldRegisterNavigation = false; // Không hiển thị trong menu điều hướng
+
+    public ?string $type = null;
+    public ?int $organizationId = null;
+
+    public function mount(): void
+    {
+        // Gán lại từ session nếu người dùng đã chọn trước đó
+        $this->type = session('organization_type');
+        $this->organizationId = session('organization_id');
+    }
+    public function hasLogo(): bool
+    {
+        return false;
+    }
+    
+    
+
+    public function save(): void
+    {
+        session([
+            'organization_type' => $this->type,
+            'organization_id' => $this->organizationId,
+        ]);
+
+        $organization = Organization::find($this->organizationId);
+
+        Notification::make()
+            ->title('Đã chọn phông: ' . ($organization?->name ?? 'Không xác định'))
+            ->success()
+            ->send();
+
+            $this->redirect(route('filament.dashboard.pages.dashboard'));
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            Select::make('type')
+                ->label('Loại phông')
+                ->options([
+                    'Đảng' => 'Phông Đảng',
+                    'Chính quyền' => 'Phông Chính quyền',
+                ])
+                ->live()
+                ->required(),
+
+            Select::make('organizationId')
+                ->label('Chọn phông')
+                ->options(function (callable $get) {
+                    if (!$get('type')) {
+                        return [];
+                    }
+
+                    return Organization::query()
+                        ->where('type', $get('type'))
+                        ->pluck('name', 'id');
+                })
+                ->required(),
+        ]);
+    }
+}

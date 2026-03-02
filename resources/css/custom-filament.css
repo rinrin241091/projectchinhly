@@ -1,0 +1,187 @@
+/* --------------------------
+   CSS HIỆN TẠI CỦA BẠN
+--------------------------- */
+body{background: url('') fixed;}
+
+.fi-main{
+    background: url('/images/background.png') fixed;
+}
+
+/* Add vertical borders to table columns in Filament tables */
+.fi-ta-table td, 
+.fi-ta-table th {
+    border-right: 1px solid #d1d5db; /* Tailwind gray-300 */
+}
+
+/* Mở rộng phần nội dung chính */
+.fi-main {
+    max-width: 100% !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Cho bảng tràn chiều ngang */
+.fi-ta {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.fi-ta-ctn {
+    width: 100% !important;
+}
+
+.fi-ta-table {
+    width: 100% !important;
+}
+
+/* Border cho section với màu #D97766 */
+.fi-section {
+    border: 1.5px solid #D97766;
+    border-radius: 0.5rem;
+}
+
+.fi-ta {
+    border: 1.5px solid #D97766;
+    border-radius: 0.5rem;
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito:wght@400;600&family=Roboto:wght@400;600&display=swap');
+
+
+/* --------------------------
+   CSS CUSTOM MOCKUP STYLE
+--------------------------- */
+
+/* Sidebar */
+
+
+
+.fi-sidebar-nav {
+    background: #0073C1 !important;
+    border-right: 1px solid #e6e9f2;
+}
+.fi-sidebar-nav .flex-1{
+    color:white !important;
+}
+
+
+.fi-sidebar-item:hover .flex-1 {
+    background: #F4F4F5;
+    color: #D97706 !important;
+}
+.fi-sidebar-item:hover .fi-sidebar-item-icon {
+    color: #D97706 !important;
+}
+.fi-sidebar-item-active .flex-1{
+    background: #F4F4F5 !important;
+    color: #D97706 !important;
+}
+.fi-sidebar-item-active .fi-sidebar-item-icon{
+    color: #D97706 !important;
+}
+.fi-sidebar-item-icon{
+    color: white !important;
+}
+
+/* Topbar */
+.topbar {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    padding: 10px 20px;
+    color: white;
+}
+
+.topbar input[type="search"] {
+    border-radius: 8px;
+    padding: 6px 12px;
+    border: none;
+}
+
+/* Widget cards */
+.widget-card {
+    border-radius: 12px;
+    padding: 20px;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transform: translateY(-3px);
+}
+
+.widget-blue {
+    background: #3b82f6 !important;
+    color:#fff !important;
+}
+
+.widget-yellow {
+    background: #fbbf24;
+    color: #000 !important;
+}
+
+.widget-purple {
+    background: #a78bfa;
+}
+
+/* Widget title */
+.widget-card h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* Stats number */
+.widget-card .stat {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Chart containers */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.widget-card * {
+    color: white !important;
+}
+
+.widget-card.widget-blue * {
+    color: white !important;
+}
+
+.widget-card.widget-yellow * {
+    color: #000 !important;
+}
+.widget-card .fi-stat-label,
+.widget-card .fi-stat-description {
+    color: white !important;
+}
+.widget-card {
+    display: flex;
+   
+}
+.widget-with-bg-icon {
+    position: relative;
+    overflow: hidden;
+}
+
+.widget-with-bg-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    width: 60px;
+    height: 60px;
+    background: url('/icons/folder.svg') no-repeat center / contain;
+    opacity: 0.15;
+    pointer-events: none;
+}
+

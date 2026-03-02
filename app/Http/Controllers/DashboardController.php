@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+
+class DashboardController extends Controller
+{
+    public function index(Request $request)
+    {
+        $totalRecords = User::count(); // Get total number of users
+        
+        return view('filament.pages.dashboard', compact('totalRecords'));
+    }
+}

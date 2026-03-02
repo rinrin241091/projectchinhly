@@ -1,0 +1,51 @@
+# Laravel core
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+.env
+.env.*.php
+.phpunit.result.cache
+
+# Laravel IDE helper
+/.phpstorm.meta.php
+/_ide_helper.php
+/_ide_helper_models.php
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+/storage/logs
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+
+# Composer files
+composer.lock
+composer.phar
+
+# NPM/Yarn files
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+
+# Vite / Mix output
+/public/hot
+/public/build
+/public/mix-manifest.json
+/public/js
+/public/css
+
+# IDEs and Editors
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Others
+*.log
+*.sqlite
+*.sqlite3

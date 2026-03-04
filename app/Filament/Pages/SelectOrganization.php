@@ -20,7 +20,11 @@ class SelectOrganization extends Page
 
     public function mount(): void
     {
-        // Gán lại từ session nếu người dùng đã chọn trước đó
+        // khi truy cập trang chọn chuyên đề/phông, luôn xóa phiên trước
+        // để đảm bảo thanh điều hướng không hiển thị dù session cũ có tồn tại
+        session()->forget(['organization_id', 'organization_type']);
+
+        // Gán lại từ session nếu người dùng đã chọn trước đó (ít khi dùng vì vừa xóa)
         $this->type = session('organization_type');
         $this->organizationId = session('organization_id');
     }

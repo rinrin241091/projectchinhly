@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('dashboard')
             ->path('dashboard')
             ->login()
+            // Navigation is always enabled; visibility will be controlled via CSS hook
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -61,9 +62,16 @@ class AdminPanelProvider extends PanelProvider
                 'panels::topbar.start',
                 fn (): string => view('components.filament.archival-display')->render(),
             )
+            ->renderHook(
+                'panels::sidebar.start',
+                fn (): string => (
+                    ! session()->has('organization_id') ||
+                    request()->routeIs('filament.dashboard.pages.select-organization')
+                )
+                    ? '<style>.fi-sidebar-nav, .fi-sidebar-ctn { display: none !important; }</style>'
+                    : '',
+            )
             ->middleware([
-                
-
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,

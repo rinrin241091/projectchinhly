@@ -65,7 +65,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::sidebar.start',
                 fn (): string => (
-                    ! session()->has('organization_id') ||
+                    ! session()->has('selected_archival_id') ||
                     request()->routeIs('filament.dashboard.pages.select-organization')
                 )
                     ? '<style>.fi-sidebar-nav, .fi-sidebar-ctn { display: none !important; }</style>'

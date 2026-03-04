@@ -54,4 +54,21 @@ class User extends Authenticatable implements FilamentUser
     {
         return true;
     }
+
+    /**
+     * Organizations (phông) the user has access to.
+     */
+    public function organizations()
+    {
+        return $this->belongsToMany(\App\Models\Organization::class);
+    }
+
+    public function hasOrganization(int $orgId): bool
+    {
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        return $this->organizations()->where('organization_id', $orgId)->exists();
+    }
 }

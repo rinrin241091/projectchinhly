@@ -51,6 +51,12 @@ class UserResource extends Resource
                     ])
                     ->required()
                     ->default('user'),
+                Forms\Components\MultiSelect::make('organizations')
+                    ->label('Phông được phép truy cập')
+                    ->relationship('organizations', 'name')
+                    ->preload()
+                    ->helperText('Chỉ người dùng có quyền với phông này mới chọn được')
+                    ->hiddenOn('create'),
                 Forms\Components\Toggle::make('active')
                     ->label('Kích hoạt')
                     ->helperText('Bật/tắt kích hoạt người dùng')
@@ -73,6 +79,10 @@ class UserResource extends Resource
                         'user' => 'success',
                         'input_data' => 'warning',
                     }),
+                Tables\Columns\TextColumn::make('organizations.name')
+                    ->label('Phông')
+                    ->wrap()
+                    ->limit(30),
                 Tables\Columns\IconColumn::make('active')
                     ->label('Trạng thái')
                     ->boolean()

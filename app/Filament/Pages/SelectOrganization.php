@@ -16,13 +16,13 @@ class SelectOrganization extends Page
     protected static bool $shouldRegisterNavigation = false; // Không hiển thị trong menu điều hướng
 
     public ?string $type = null;
-    public ?int $organizationId = null;
+    public ?int $organizationId = null; // chosen organization id
 
     public function mount(): void
     {
-        // khi truy cập trang chọn chuyên đề/phông, luôn xóa phiên trước
+        // khi truy cập trang chọn phông, luôn xóa phiên trước
         // để đảm bảo thanh điều hướng không hiển thị dù session cũ có tồn tại
-        session()->forget(['organization_id', 'organization_type']);
+        session()->forget(['organization_id', 'organization_type', 'selected_archival_id']);
 
         // Gán lại từ session nếu người dùng đã chọn trước đó (ít khi dùng vì vừa xóa)
         $this->type = session('organization_type');
@@ -40,6 +40,7 @@ class SelectOrganization extends Page
         session([
             'organization_type' => $this->type,
             'organization_id' => $this->organizationId,
+            'selected_archival_id' => $this->organizationId,
         ]);
 
         $organization = Organization::find($this->organizationId);
@@ -71,9 +72,15 @@ class SelectOrganization extends Page
                         return [];
                     }
 
-                    return Organization::query()
-                        ->where('type', $get('type'))
-                        ->pluck('name', 'id');
+                    $query = Organization::query()
+                        ->where('type', $get('type'));
+
+                    // nếu user không phải admin, chỉ hiển thị những phông được gán
+                    if (auth()->check() && auth()->user()->role !== 'admin') {
+                        $query->whereIn('id', auth()->user()->organizations()->pluck('organizations.id'));
+                    }
+
+                    return $query->pluck('name', 'id');
                 })
                 ->required(),
         ]);

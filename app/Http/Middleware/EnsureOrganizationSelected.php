@@ -31,8 +31,17 @@ class EnsureOrganizationSelected
         }
 
         // ⚙️ Nếu chưa chọn phông → chuyển hướng
-        if (! session()->has('organization_id')) {
+        if (! session()->has('selected_archival_id')) {
             return redirect()->route('filament.dashboard.pages.select-organization');
+        }
+
+        // ⚙️ nếu đã chọn nhưng user không có quyền với phông đó (và không phải admin)
+        $orgId = session('selected_archival_id');
+        if (auth()->check() && ! auth()->user()->hasOrganization($orgId)) {
+            // xóa session và trả về trang chọn
+            session()->forget(['organization_id', 'organization_type', 'selected_archival_id']);
+            return redirect()->route('filament.dashboard.pages.select-organization')
+                ->with('error', 'Bạn không có quyền truy cập phông này.');
         }
 
         return $next($request);

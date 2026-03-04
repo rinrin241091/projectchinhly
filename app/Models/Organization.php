@@ -24,4 +24,11 @@ class Organization extends Model
         return $this->hasMany(ArchiveRecord::class);
     }
     
+    /**
+     * Users assigned to this organization.
+     */
+    public function users()
+    {
+        return $this->belongsToMany(\App\Models\User::class);
+    }
 }

@@ -56,19 +56,34 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Organizations (phông) the user has access to.
+     * Organizations (phông) the user has access to.  We include pivot data
+     * so that the user can have a distinct "role" in each organization.
      */
     public function organizations()
     {
-        return $this->belongsToMany(\App\Models\Organization::class);
+        return $this->belongsToMany(\App\Models\Organization::class)
+                    ->withPivot('role')
+                    ->withTimestamps();
     }
 
-    public function hasOrganization(int $orgId): bool
+    /**
+     * Determine whether the user is associated with the given organization.
+     *
+     * @param  int  $orgId
+     * @param  string|null  $role   optional pivot role to check for
+     */
+    public function hasOrganization(int $orgId, ?string $role = null): bool
     {
         if ($this->role === 'admin') {
             return true;
         }
 
-        return $this->organizations()->where('organization_id', $orgId)->exists();
+        $query = $this->organizations()->where('organization_id', $orgId);
+
+        if ($role !== null) {
+            $query->wherePivot('role', $role);
+        }
+
+        return $query->exists();
     }
 }

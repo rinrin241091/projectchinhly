@@ -52,8 +52,9 @@ class ArchiveRecordResource extends Resource
                             Forms\Components\Select::make('storage_id')
                                 ->label('Chọn kho')
                                 ->options(function ($state, callable $set, $record) {
-                                    $arId = Organization::find(session('selected_archival_id'))?->archival_id;
-                                   // return \Log::info($arId);
+                                    $orgId = session('selected_archival_id');
+
+                                    $arId = $orgId ? Organization::find($orgId)?->archival_id  : null;
                                     
 
                                     $archivalId = $record->box?->shelf?->storage?->archival?->id ?? $arId;
@@ -289,15 +290,18 @@ class ArchiveRecordResource extends Resource
         return $table 
             ->modifyQueryUsing(function (Builder $query) {
                 $archiveRecordItemId = session('selected_archive_record_item_id');
+
                 if (!empty($archiveRecordItemId)) {
                     $query->where('archive_record_item_id', $archiveRecordItemId);
                 }
-                
+
                 $archivalId = session('selected_archival_id');
+
                 if (!empty($archivalId)) {
                     $query->where('organization_id', $archivalId);
                 }
-            })
+                return $query;
+})
             ->columns([
                 
                 
@@ -331,7 +335,7 @@ class ArchiveRecordResource extends Resource
                 Tables\Actions\CreateAction::make()
                     ->label('Tạo hồ sơ mới')
                     ->modalHeading('Tạo hồ sơ mới')
-                    ->visible(fn () => session()->has('selected_archival_id'))
+                    ->visible(fn () => session()->has('selected_archival_id') && static::canCreate())
                     ->modalWidth('7xl')
                     ->after(function ($record) {
                         // có thể xử lý sau khi lưu nếu cần
@@ -350,7 +354,7 @@ class ArchiveRecordResource extends Resource
                         $export = new \App\Exports\ArchiveRecordsExport($query);
                         return $export->download('archive_records.xlsx');
                     })
-                    ->visible(fn () => session()->has('selected_archival_id')),
+                    ->visible(fn () => session()->has('selected_archival_id') && static::canExport()),
 
 
                 Tables\Actions\Action::make('chonPhong')
@@ -435,8 +439,10 @@ class ArchiveRecordResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->modalWidth('7xl'),
-                Tables\Actions\DeleteAction::make(),
+                    ->modalWidth('7xl')
+                    ->visible(fn() => static::canEdit(null)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => static::canDelete(null)),
                 Tables\Actions\Action::make('viewDocuments')
                     ->label('Mục lục tài liệu')
                     ->icon('heroicon-o-document-text')
@@ -458,7 +464,8 @@ class ArchiveRecordResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => static::canDelete(null)),
                 ]),
             ])
             ->emptyStateActions([

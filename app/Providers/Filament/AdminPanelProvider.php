@@ -48,7 +48,7 @@ class AdminPanelProvider extends PanelProvider
                 BulkCreateBoxs::class,
                 SelectOrganization::class,
             ])
-            ->font(family:'popins')
+            ->font(family:'Poppins')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
             ])

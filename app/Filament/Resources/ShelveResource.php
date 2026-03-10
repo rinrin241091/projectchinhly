@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Traits\RoleBasedPermissions;
 use App\Filament\Resources\ShelveResource\Pages;
 use App\Filament\Resources\ShelveResource\RelationManagers;
 use App\Models\Shelf;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ShelveResource extends Resource
 {
+    use RoleBasedPermissions;
     protected static ?string $model = Shelf::class;
 
     protected static ?string $navigationLabel = 'Danh sách Kệ';
@@ -71,12 +73,15 @@ class ShelveResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => static::canEdit(null)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => static::canDelete(null)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => static::canDelete(null)),
                 ]),
             ])
             ->headerActions([
@@ -84,7 +89,8 @@ class ShelveResource extends Resource
                 Tables\Actions\CreateAction::make('bulkCreateShelves')
                     ->label('Tạo nhiều kệ')
                     ->icon('heroicon-o-plus-circle')
-                    ->url(fn () => route('filament.dashboard.pages.bulk-create-shelves')), // Route đến page bạn đã tạo
+                    ->url(fn () => route('filament.dashboard.pages.bulk-create-shelves'))
+                    ->visible(fn() => static::canCreate()),
             ])
             ->emptyStateActions([
                 // Remove create action from empty state

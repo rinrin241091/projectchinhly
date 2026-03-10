@@ -4,6 +4,7 @@ namespace App\Filament\Resources\DocumentResource\Pages;
 
 use App\Filament\Resources\DocumentResource;
 use App\Imports\DocumentsImport;
+use App\Traits\RoleBasedPermissions;
 use Filament\Actions;
 use Filament\Resources\Pages\Page;
 use Filament\Forms;
@@ -11,18 +12,31 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Illuminate\Http\RedirectResponse;
 
 class ImportDocuments extends Page
 {
+    use RoleBasedPermissions;
     protected static string $resource = DocumentResource::class;
 
     protected static string $view = 'filament.resources.document-resource.pages.import-documents';
 
     public ?array $data = [];
 
-    public function mount(): void
+    public function mount(): RedirectResponse|null
     {
+        // Check if user has permission to access this page
+        if (!static::canImport()) {
+            Notification::make()
+                ->title('Bị từ chối')
+                ->body('Bạn không có quyền truy cập trang import. Chỉ những người có vai trò Quản trị viên hoặc Chỉnh sửa mới có thể import.')
+                ->danger()
+                ->send();
+            return redirect()->route('filament.dashboard.resources.documents.index');
+        }
+        
         $this->form->fill();
+        return null;
     }
 
     public function form(Form $form): Form
@@ -55,6 +69,16 @@ class ImportDocuments extends Page
 
     public function import()
     {
+        // Check if user has import permission
+        if (!static::canImport()) {
+            Notification::make()
+                ->title('Bị từ chối')
+                ->body('Bạn không có quyền import tài liệu. Chỉ những người có vai trò Quản trị viên hoặc Chỉnh sửa mới có thể import.')
+                ->danger()
+                ->send();
+            return redirect()->route('filament.dashboard.resources.documents.index');
+        }
+        
         $data = $this->form->getState();
         
         try {

@@ -25,6 +25,21 @@ class OrganizationResource extends Resource
     protected static ?string $navigationLabel = 'Phông lưu trữ'; //Đổi tên text hiển thị
     protected static ?int $navigationSort = 2;
 
+    public static function canCreate(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canEdit($record);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canDelete($record);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -86,11 +101,15 @@ class OrganizationResource extends Resource
                 Tables\Actions\EditAction::make(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()->label('Tạo mới')->button(),
+                Tables\Actions\CreateAction::make()
+                    ->label('Tạo mới')
+                    ->button()
+                    ->visible(fn() => \App\Traits\RoleBasedPermissions::canCreate()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => \App\Traits\RoleBasedPermissions::canDelete(null)),
                 ]),
             ])
             ->emptyStateActions([

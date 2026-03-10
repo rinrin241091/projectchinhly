@@ -21,12 +21,22 @@ class BulkCreateShelves extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Tạo nhiều kệ';
     protected static ?string $title = 'Thêm nhiều kệ';
-     protected static ?string $navigationGroup = 'Khai thác - Thống kê';  //Tạo gộp nhóm menu bên trái
+    protected static ?string $navigationGroup = 'Khai thác - Thống kê';  //Tạo gộp nhóm menu bên trái
     protected static string $view = 'filament.pages.bulk-create-shelves';
-     protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 5;
 
     public ?array $data = [];
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
+
+    public static function canAccess(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
+    
     public function mount(): void
     {
         $this->form->fill(); // form từ trait InteractsWithForms
@@ -109,5 +119,4 @@ class BulkCreateShelves extends Page implements HasForms
 
         $this->redirect('/dashboard/shelves');
     }
-
 }

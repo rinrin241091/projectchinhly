@@ -91,9 +91,7 @@ class DocumentResource extends Resource
                     ->label('Tác giả'),
                 
                 Forms\Components\TextInput::make('page_number')
-                    ->label('Tờ số')
-                    // ->numeric(),
-                    ,
+                    ->label('Tờ số'),
                 
                 Forms\Components\Textarea::make('note')
                     ->label('Ghi chú')
@@ -113,10 +111,11 @@ class DocumentResource extends Resource
         return $table
 
             ->modifyQueryUsing(function (Builder $query) {
-            if ($recordId = session('selected_archive_record_id')) {
-                $query->where('archive_record_id', $recordId);
-            }
-            })
+                if ($recordId = session('selected_archive_record_id')) {
+                    $query->where('archive_record_id', $recordId);
+                }
+                return $query;
+})
 
             ->columns([
                 Tables\Columns\TextColumn::make('document_code')
@@ -147,15 +146,19 @@ class DocumentResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => static::canEdit(null)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => static::canDelete(null)),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn() => static::canCreate()),
                 Tables\Actions\Action::make('import')
                     ->label('Import')
                     ->url(static::getUrl('import'))
-                    ->icon('heroicon-o-rectangle-stack'),
+                    ->icon('heroicon-o-rectangle-stack')
+                    ->visible(fn() => static::canImport()),
                 //các nút chức năng trên phần header table
  /*NÚT CHỌN ML*/Tables\Actions\Action::make('chonMucLuc')
                     ->label('Chọn mục lục hồ sơ')
@@ -246,7 +249,8 @@ class DocumentResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => static::canDelete(null)),
                 ]),
             ]);
     }

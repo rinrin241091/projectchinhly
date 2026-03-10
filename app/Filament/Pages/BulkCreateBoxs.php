@@ -23,13 +23,22 @@ class BulkCreateBoxs extends Page
     use InteractsWithForms;
 
     protected static ?string $navigationLabel = 'Tạo nhiều hộp';
-     protected static ?string $navigationGroup = 'Khai thác - Thống kê';  //Tạo gộp nhóm menu bên trái
+    protected static ?string $navigationGroup = 'Khai thác - Thống kê';  //Tạo gộp nhóm menu bên trái
     protected static ?int $navigationSort = 7;
 
 
     protected static string $view = 'filament.pages.bulk-create-boxs';
     public ?array $data = [];
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
+
+    public static function canAccess(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
 
     public function mount(): void
     {
@@ -142,5 +151,5 @@ class BulkCreateBoxs extends Page
             ->send();
             $this->redirect('/dashboard/boxes');
 
-            }
+    }
 }

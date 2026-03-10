@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Traits\RoleBasedPermissions;
 use App\Filament\Resources\BoxResource\Pages;
 use App\Filament\Resources\BoxResource\RelationManagers;
 use App\Models\Box;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\Storage; // Hỗ trợ in nhãn
 
 class BoxResource extends Resource
 {
+    use RoleBasedPermissions;
     protected static ?string $model = Box::class;
       protected static ?string $navigationLabel = 'Danh sách Hộp';
 
@@ -124,8 +126,10 @@ class BoxResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => static::canEdit(null)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => static::canDelete(null)),
 
                 Action::make('xemTruocIn')
                     ->label('Xem nhãn hộp')
@@ -141,8 +145,9 @@ class BoxResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
-                Tables\Actions\BulkAction::make('print_labels')
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => static::canDelete(null)),
+                    Tables\Actions\BulkAction::make('print_labels')
             ->label('In nhãn hộp')
             ->icon('heroicon-o-printer')
             ->action(function ($records) {
@@ -162,10 +167,12 @@ class BoxResource extends Resource
                 Tables\Actions\CreateAction::make('bulkCreateBoxs')
                     ->label('Tạo hộp mới')
                     ->icon('heroicon-o-plus-circle')
-                    ->url(fn () => route('filament.dashboard.pages.bulk-create-boxs')), // Route đến page bạn đã tạo
+                    ->url(fn () => route('filament.dashboard.pages.bulk-create-boxs'))
+                    ->visible(fn() => static::canCreate()),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn() => static::canCreate()),
             ]);
     }
     

@@ -24,7 +24,21 @@ class ArchivalResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?int $navigationSort = 1;
-    
+
+    public static function canCreate(): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canCreate();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canEdit($record);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return \App\Traits\RoleBasedPermissions::canDelete($record);
+    }
 
     public static function form(Form $form): Form
     {

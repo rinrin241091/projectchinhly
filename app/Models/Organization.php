@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Organization extends Model
 {
@@ -16,19 +17,22 @@ class Organization extends Model
     public function departments(): HasMany {
         return $this->hasMany(Department::class);
     }
-    public function archival():BelongsTo
+    public function archival(): BelongsTo
     {
-        return $this->belongsTo(related: Archival::class);
+        return $this->belongsTo(Archival::class);
     }
     public function archivalrecords(): HasMany {
         return $this->hasMany(ArchiveRecord::class);
     }
     
     /**
-     * Users assigned to this organization.
+     * Users assigned to this organization.  pivot `role` describes their
+     * permission level within this phông.
      */
     public function users()
     {
-        return $this->belongsToMany(\App\Models\User::class);
+        return $this->belongsToMany(\App\Models\User::class)
+                    ->withPivot('role')
+                    ->withTimestamps();
     }
 }

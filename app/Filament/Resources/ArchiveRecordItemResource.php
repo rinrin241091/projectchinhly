@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 // Import các lớp cần thiết cho Resource
+use App\Traits\RoleBasedPermissions;
 use App\Filament\Resources\ArchiveRecordItemResource\Pages;
 use App\Filament\Resources\ArchiveRecordItemResource\RelationManagers;
 use App\Models\ArchiveRecordItem;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 // Lớp Resource cho quản lý ArchiveRecordItem trong Filament
 class ArchiveRecordItemResource extends Resource
 {
+    use RoleBasedPermissions;
     // Model liên kết với Resource này
     protected static ?string $model = ArchiveRecordItem::class;
 
@@ -106,9 +108,11 @@ class ArchiveRecordItemResource extends Resource
             ])
             ->actions([
                 // Hành động chỉnh sửa
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => static::canEdit(null)),
                 // Hành động xóa
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => static::canDelete(null)),
                 // Hành động xem mục lục
                 Tables\Actions\Action::make('viewRecords')
                     ->label('Xem mục lục')
@@ -118,12 +122,15 @@ class ArchiveRecordItemResource extends Resource
             ->bulkActions([
                 // Hành động xóa hàng loạt
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => static::canDelete(null)),
                 ]),
             ])
             ->headerActions([
                 // Hành động tạo mới
-                Tables\Actions\CreateAction::make()->label('Thêm mục lục hồ sơ'),
+                Tables\Actions\CreateAction::make()
+                    ->label('Thêm mục lục hồ sơ')
+                    ->visible(fn() => static::canCreate()),
             ])
             ->emptyStateActions([]);
     }

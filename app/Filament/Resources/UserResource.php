@@ -152,6 +152,29 @@ class UserResource extends Resource
             Tables\Actions\EditAction::make(),
             Tables\Actions\DeleteAction::make(),
 
+            Tables\Actions\Action::make('changePassword')
+                ->label('Đổi mật khẩu')
+                ->icon('heroicon-o-key')
+                ->form([
+                    Forms\Components\TextInput::make('password')
+                        ->label('Mật khẩu mới')
+                        ->password()
+                        ->required()
+                        ->minLength(6)
+                        ->maxLength(255)
+                        ->confirmed()
+                        ->helperText('Mật khẩu phải tối thiểu 6 ký tự'),
+                    Forms\Components\TextInput::make('password_confirmation')
+                        ->label('Xác nhận mật khẩu')
+                        ->password()
+                        ->required(),
+                ])
+                ->action(function (User $record, array $data) {
+                    $record->update([
+                        'password' => Hash::make($data['password']),
+                    ]);
+                }),
+
             Tables\Actions\Action::make('assignWorkspace')
                 ->label('')
                 ->icon('heroicon-o-plus')

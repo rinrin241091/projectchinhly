@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrganizationResource\Pages;
 use App\Filament\Resources\OrganizationResource\RelationManagers;
 use App\Models\Organization;
+use App\Traits\RoleBasedPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +17,8 @@ use Filament\Tables\Columns\TextColumn;
 
 class OrganizationResource extends Resource
 {
+    use RoleBasedPermissions;
+
     protected static ?string $model = Organization::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

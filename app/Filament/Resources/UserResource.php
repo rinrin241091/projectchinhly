@@ -53,6 +53,7 @@ class UserResource extends Resource
                             ->options([
                                 'admin' => 'Admin',
                                 'user' => 'User',
+                                'data_entry' => 'Nhân viên nhập liệu',
                                 'input_data' => 'InputData',
                             ])
                             ->required()
@@ -124,12 +125,14 @@ class UserResource extends Resource
                 ->formatStateUsing(fn ($state) => match ($state) {
                     'admin' => 'Admin',
                     'user' => 'User',
+                    'data_entry' => 'Nhân viên nhập liệu',
                     'input_data' => 'Nhập dữ liệu',
                     default => $state,
                 })
                 ->color(fn ($state) => match ($state) {
                     'admin' => 'danger',
                     'user' => 'success',
+                    'data_entry' => 'warning',
                     'input_data' => 'warning',
                     default => 'gray',
                 })
@@ -220,8 +223,8 @@ class UserResource extends Resource
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
 
-        // Restrict access to certain pages for input_data role
-        if (auth()->check() && auth()->user()->role === 'input_data') {
+        // Restrict access to certain pages for limited global roles
+        if (auth()->check() && in_array(auth()->user()->role, ['input_data', 'data_entry'], true)) {
             // Example: Remove access to specific pages
             // unset($pages['manage-users']);
         }

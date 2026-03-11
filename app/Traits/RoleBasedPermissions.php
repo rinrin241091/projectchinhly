@@ -4,10 +4,36 @@ namespace App\Traits;
 
 trait RoleBasedPermissions
 {
+    protected static function isDataEntryRole($user): bool
+    {
+        return $user && in_array($user->role, ['data_entry', 'input_data'], true);
+    }
+
+    protected static function dataEntryViewableResources(): array
+    {
+        return [
+            \App\Filament\Resources\ArchiveRecordResource::class,
+            \App\Filament\Resources\DocumentResource::class,
+            \App\Filament\Resources\ArchiveRecordItemResource::class,
+        ];
+    }
+
+    protected static function dataEntryWritableResources(): array
+    {
+        return [
+            \App\Filament\Resources\ArchiveRecordResource::class,
+            \App\Filament\Resources\DocumentResource::class,
+        ];
+    }
+
     public static function canViewAny(): bool
     {
         $user = auth()->user();
         if (!$user) return false;
+
+        if (static::isDataEntryRole($user)) {
+            return in_array(static::class, static::dataEntryViewableResources(), true);
+        }
 
         // global admin bypasses everything
         if ($user->role === 'admin') {
@@ -20,14 +46,6 @@ trait RoleBasedPermissions
             return true;
         }
 
-        // fallback to previous input_data logic for non-organized access
-        if ($user->role === 'input_data') {
-            return in_array(static::class, [
-                \App\Filament\Resources\ArchiveRecordResource::class,
-                \App\Filament\Resources\DocumentResource::class,
-            ]);
-        }
-
         return false;
     }
     
@@ -37,6 +55,9 @@ trait RoleBasedPermissions
         if (! $user) {
             return false;
         }
+        if (static::isDataEntryRole($user)) {
+            return in_array(static::class, static::dataEntryWritableResources(), true);
+        }
         if ($user->role === 'admin') {
             return true;
         }
@@ -45,7 +66,7 @@ trait RoleBasedPermissions
             // editors and admins within the org can create
             return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
         }
-        return $user->role === 'input_data';
+        return false;
     }
     
     public static function canEdit($record): bool
@@ -54,6 +75,9 @@ trait RoleBasedPermissions
         if (! $user) {
             return false;
         }
+        if (static::isDataEntryRole($user)) {
+            return in_array(static::class, static::dataEntryWritableResources(), true);
+        }
         if ($user->role === 'admin') {
             return true;
         }
@@ -61,13 +85,16 @@ trait RoleBasedPermissions
         if ($orgId !== null) {
             return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
         }
-        return $user->role === 'input_data';
+        return false;
     }
     
     public static function canDelete($record): bool
     {
         $user = auth()->user();
         if (! $user) {
+            return false;
+        }
+        if (static::isDataEntryRole($user)) {
             return false;
         }
         if ($user->role === 'admin') {
@@ -77,7 +104,7 @@ trait RoleBasedPermissions
         if ($orgId !== null) {
             return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
         }
-        return $user->role === 'input_data';
+        return false;
     }
 
     /**
@@ -88,6 +115,10 @@ trait RoleBasedPermissions
     {
         $user = auth()->user();
         if (! $user) {
+            return false;
+        }
+
+        if (static::isDataEntryRole($user)) {
             return false;
         }
         
@@ -102,8 +133,7 @@ trait RoleBasedPermissions
             return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
         }
         
-        // input_data role can import
-        return $user->role === 'input_data';
+        return false;
     }
 
     /**
@@ -114,6 +144,10 @@ trait RoleBasedPermissions
     {
         $user = auth()->user();
         if (! $user) {
+            return false;
+        }
+
+        if (static::isDataEntryRole($user)) {
             return false;
         }
         
@@ -128,8 +162,7 @@ trait RoleBasedPermissions
             return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
         }
         
-        // input_data role can export
-        return $user->role === 'input_data';
+        return false;
     }
 
     /**
@@ -140,6 +173,10 @@ trait RoleBasedPermissions
     {
         $user = auth()->user();
         if (! $user) {
+            return false;
+        }
+
+        if (static::isDataEntryRole($user)) {
             return false;
         }
         
@@ -165,6 +202,10 @@ trait RoleBasedPermissions
     {
         $user = auth()->user();
         if (! $user) {
+            return false;
+        }
+
+        if (static::isDataEntryRole($user)) {
             return false;
         }
         

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ArchivalResource\Pages;
 use App\Filament\Resources\ArchivalResource\RelationManagers;
 use App\Models\Archival;
+use App\Traits\RoleBasedPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ArchivalResource extends Resource
 {
+    use RoleBasedPermissions;
+
     protected static ?string $model = Archival::class;
 
     protected static ?string $navigationGroup = 'Khai thác - Thống kê';  //Tạo gộp nhóm menu bên trái

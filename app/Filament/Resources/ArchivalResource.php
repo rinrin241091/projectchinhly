@@ -78,6 +78,31 @@ class ArchivalResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+
+                if (!$user) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                if ($user->role === 'admin') {
+                    return $query;
+                }
+
+                $orgId = session('selected_archival_id');
+
+                if (!$orgId || !$user->hasOrganization($orgId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                $archivalId = \App\Models\Organization::find($orgId)?->archival_id;
+
+                if (!$archivalId) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                return $query->whereKey($archivalId);
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable(),
                 Tables\Columns\TextColumn::make('identifier')->label('Mã cơ quan lưu trữ')->searchable(),

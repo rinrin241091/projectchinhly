@@ -43,12 +43,25 @@ class BoxResource extends Resource
                 Forms\Components\Select::make('shelf_id')
                 ->label('Chọn kệ chứa')
                 ->options(function ($record) {
+                    $user = auth()->user();
+
                     // 🔸 Nếu đang edit: lấy mã kho từ hộp hiện tại
                     $storageId = $record?->shelf?->storage?->id;
 
                     // 🔸 Nếu đang tạo mới, có thể load theo phông đang chọn
                     if (!$storageId && session()->has('selected_archival_id')) {
-                        $archivalId = session('selected_archival_id');
+                        $orgId = session('selected_archival_id');
+
+                        if ($user && $user->role !== 'admin' && !$user->hasOrganization($orgId)) {
+                            return [];
+                        }
+
+                        $archivalId = \App\Models\Organization::find($orgId)?->archival_id;
+
+                        if (!$archivalId) {
+                            return [];
+                        }
+
                         return \App\Models\Shelf::whereHas('storage', function ($q) use ($archivalId) {
                             $q->where('archival_id', $archivalId);
                         })->pluck('description', 'id');
@@ -69,7 +82,7 @@ class BoxResource extends Resource
                 ->afterStateHydrated(function ($state, callable $set, $record) {
                     // 🔹 Khi edit, nếu form chưa có state, hiển thị đúng kệ hiện tại
                     if (!$state && $record?->shelf?->id) {
-                        $set('shelve_id', $record->shelf->id);
+                        $set('shelf_id', $record->shelf->id);
                     }
                 }),
                 Forms\Components\TextInput::make('code')

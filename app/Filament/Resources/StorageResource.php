@@ -51,7 +51,7 @@ class StorageResource extends Resource
                                 // NON-ADMIN: lấy cơ quan theo phông đã chọn
                                 $orgId = session('selected_archival_id');
 
-                                if ($orgId) {
+                                if ($orgId && $user->hasOrganization($orgId)) {
 
                                     $organization = Organization::with('archival')->find($orgId);
 
@@ -66,9 +66,11 @@ class StorageResource extends Resource
                             })
                             ->default(function () {
 
+                                $user = auth()->user();
+
                                 $orgId = session('selected_archival_id');
 
-                                if ($orgId) {
+                                if ($orgId && $user && $user->hasOrganization($orgId)) {
                                     return Organization::find($orgId)?->archival_id;
                                 }
 
@@ -117,7 +119,7 @@ class StorageResource extends Resource
                 // NON-ADMIN: filter theo phông đã chọn
                 $orgId = session('selected_archival_id');
 
-                if ($orgId) {
+                if ($orgId && $user->hasOrganization($orgId)) {
 
                     $organization = Organization::find($orgId);
 

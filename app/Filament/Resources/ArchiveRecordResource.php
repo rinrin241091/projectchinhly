@@ -442,7 +442,7 @@ class ArchiveRecordResource extends Resource
                     })
                     ->color('success')
                     ->disabled()
-                    ->visible(fn () => session()->has('selected_archival_id')),
+                    ->visible(fn () => session()->has('selected_archival_id') && auth()->user()?->role === 'admin'),
 
                 Tables\Actions\Action::make('resetPhong')
                     ->label(function () {
@@ -455,7 +455,7 @@ class ArchiveRecordResource extends Resource
                     ->action(function () {
                         session()->forget('selected_archival_id');
                     })
-                    ->visible(fn () => session()->has('selected_archival_id')),
+                    ->visible(fn () => session()->has('selected_archival_id') && auth()->user()?->role === 'admin'),
                 
                 Tables\Actions\Action::make('chonMucLuc')
                     ->label('Chọn mục lục hồ sơ')
@@ -478,7 +478,7 @@ class ArchiveRecordResource extends Resource
                 session(['selected_archive_record_item_id' => $data['selected_archive_record_item_id'] ?? null]);
                 session(['ArchiveRecorditem' => $data['selected_archive_record_item_id'] ?? null]);
             })
-            ->visible(fn () => session()->has('selected_archival_id')),
+            ->visible(fn () => session()->has('selected_archival_id') && auth()->user()?->role === 'admin'),
                 
                 Tables\Actions\Action::make('currentMucLuc')
                     ->label(function () {

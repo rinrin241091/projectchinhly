@@ -51,7 +51,37 @@ class OrganizationResource extends Resource
                                 Forms\Components\TextInput::make('code')->required(),
                                 Forms\Components\TextInput::make('name')->required(),
                                 Forms\Components\Select::make('archival_id')
-                                    ->relationship('archival', 'name')->label('Cơ quan lưu trữ'),
+                                    ->label('Cơ quan lưu trữ')
+                                    ->options(function () {
+                                        $user = auth()->user();
+
+                                        if ($user->role === 'admin') {
+                                            return \App\Models\Archival::pluck('name', 'id');
+                                        }
+
+                                        $orgId = session('selected_archival_id');
+
+                                        if (!$orgId || !$user->hasOrganization($orgId)) {
+                                            return [];
+                                        }
+
+                                        $archival = \App\Models\Organization::find($orgId)?->archival;
+
+                                        if (!$archival) {
+                                            return [];
+                                        }
+
+                                        return [
+                                            $archival->id => $archival->name,
+                                        ];
+                                    })
+                                    ->default(function () {
+                                        $orgId = session('selected_archival_id');
+                                        return $orgId ? \App\Models\Organization::find($orgId)?->archival_id : null;
+                                    })
+                                    ->disabled(fn () => auth()->user()?->role !== 'admin')
+                                    ->searchable()
+                                    ->preload(),
                                 Forms\Components\TextInput::make('start_year')
                                     ->label('Từ năm')
                                     ->numeric()
@@ -86,6 +116,25 @@ class OrganizationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+
+                if (!$user) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                if ($user->role === 'admin') {
+                    return $query;
+                }
+
+                $orgId = session('selected_archival_id');
+
+                if (!$orgId || !$user->hasOrganization($orgId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                return $query->whereKey($orgId);
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable()->toggleable()->toggleable(isToggledHiddenByDefault: false)->extraAttributes(['class' => 'border-r']),
                 Tables\Columns\TextColumn::make('code')->label('Mã phông')->searchable()->extraAttributes(['class' => 'border-r']),

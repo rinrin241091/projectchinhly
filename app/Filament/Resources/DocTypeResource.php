@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\DocTypeResource\Pages;
 use App\Filament\Resources\DocTypeResource\RelationManagers;
 use App\Models\DocType;
+use App\Traits\RoleBasedPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class DocTypeResource extends Resource
 {
+    use RoleBasedPermissions;
+
     protected static ?string $model = DocType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -61,6 +64,11 @@ class DocTypeResource extends Resource
                     
     }
 
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->role === 'admin';
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -82,15 +90,18 @@ class DocTypeResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => static::canEdit(null)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => static::canDelete(null)),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn () => static::canCreate()),
             ]);
     }
     

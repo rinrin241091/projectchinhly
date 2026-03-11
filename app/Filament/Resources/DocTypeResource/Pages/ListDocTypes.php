@@ -13,7 +13,8 @@ class ListDocTypes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->visible(fn () => DocTypeResource::canCreate()),
         ];
     }
     public function getTitle(): string

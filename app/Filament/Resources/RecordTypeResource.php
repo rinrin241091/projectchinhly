@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RecordTypeResource\Pages;
 use App\Filament\Resources\RecordTypeResource\RelationManagers;
 use App\Models\RecordType;
+use App\Traits\RoleBasedPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RecordTypeResource extends Resource
 {
+    use RoleBasedPermissions;
+
     protected static ?string $model = RecordType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -44,6 +47,11 @@ class RecordTypeResource extends Resource
             ]);
     }
 
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->role === 'admin';
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -66,16 +74,20 @@ class RecordTypeResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => static::canEdit(null)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => static::canDelete(null)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => static::canDelete(null)),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn () => static::canCreate()),
             ]);
     }
     

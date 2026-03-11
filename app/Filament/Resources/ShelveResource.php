@@ -8,6 +8,7 @@ use App\Filament\Resources\ShelveResource\RelationManagers;
 use App\Models\Shelf;
 use App\Models\Archival;
 use App\Models\Storage;
+use App\Models\Organization;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -49,6 +50,35 @@ class ShelveResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+                if (!$user) return $query;
+                
+                // Admin can see everything - no filtering
+                if ($user->role === 'admin') {
+                    return $query;
+                }
+                
+                // Non-admin: must select an organization and only see that org's data
+                if ($orgId = session('selected_archival_id')) {
+                    if (!$user->hasOrganization($orgId)) {
+                        return $query->whereRaw('1 = 0');
+                    }
+                    // Get the archival from organization
+                    $archival = \App\Models\Organization::find($orgId)?->archival;
+                    if ($archival) {
+                        $query->whereHas('storage', function ($q) use ($archival) {
+                            $q->where('archival_id', $archival->id);
+                        });
+                    } else {
+                        return $query->whereRaw('1 = 0');
+                    }
+                } else {
+                    return $query->whereRaw('1 = 0');
+                }
+                
+                return $query;
+            })
             ->columns([
                 Tables\Columns\TextColumn::make(name:'code')
                     ->searchable()

@@ -289,17 +289,42 @@ class ArchiveRecordResource extends Resource
     {
         return $table 
             ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+                if (!$user) return $query;
+                
                 $archiveRecordItemId = session('selected_archive_record_item_id');
-
-                if (!empty($archiveRecordItemId)) {
-                    $query->where('archive_record_item_id', $archiveRecordItemId);
-                }
-
                 $archivalId = session('selected_archival_id');
-
-                if (!empty($archivalId)) {
-                    $query->where('organization_id', $archivalId);
+                
+                // Admin can filter by selected organization if chosen
+                if ($user->role === 'admin') {
+                    if (!empty($archivalId)) {
+                        // Admin chose an organization - filter by it
+                        $query->where('organization_id', $archivalId);
+                        // Also filter by selected archive record item if applicable
+                        if (!empty($archiveRecordItemId)) {
+                            $query->where('archive_record_item_id', $archiveRecordItemId);
+                        }
+                    }
+                    return $query;
                 }
+                
+                // Non-admin: must select an organization and only see that org's data
+                if (!empty($archivalId)) {
+                    if (!$user->hasOrganization($archivalId)) {
+                        // User doesn't have access to this organization
+                        return $query->whereRaw('1 = 0'); // Show nothing
+                    }
+                    // Filter to selected organization
+                    $query->where('organization_id', $archivalId);
+                    // Also filter by selected archive record item if applicable
+                    if (!empty($archiveRecordItemId)) {
+                        $query->where('archive_record_item_id', $archiveRecordItemId);
+                    }
+                } else {
+                    // Non-admin without selected organization: show nothing
+                    return $query->whereRaw('1 = 0');
+                }
+                
                 return $query;
 })
             ->columns([
@@ -330,6 +355,37 @@ class ArchiveRecordResource extends Resource
                 Tables\Columns\TextColumn::make('archiveRecordItem.title')->label('Mục lục'),                
                 Tables\Columns\TextColumn::make('note')->label('Ghi chú')->wrap(),
                  
+            ])
+            ->filters([
+                // Thêm filters cho Admin
+                Tables\Filters\SelectFilter::make('organization_id')
+                    ->label('Lọc theo phông')
+                    ->options(Organization::pluck('name', 'id'))
+                    ->visible(fn () => auth()->user()?->role === 'admin'),
+                
+                Tables\Filters\SelectFilter::make('archiveRecordItem')
+                    ->label('Lọc theo mục lục')
+                    ->relationship('archiveRecordItem', 'title')
+                    ->visible(fn () => auth()->user()?->role === 'admin'),
+                
+                Tables\Filters\Filter::make('start_date')
+                    ->label('Lộc theo ngày bắt đầu')
+                    ->form([
+                        Forms\Components\DatePicker::make('start_date_from')
+                            ->label('Từ ngày')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d'),
+                        Forms\Components\DatePicker::make('start_date_to')
+                            ->label('Đến ngày')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['start_date_from'], fn(Builder $q) => $q->whereDate('start_date', '>=', $data['start_date_from']))
+                            ->when($data['start_date_to'], fn(Builder $q) => $q->whereDate('start_date', '<=', $data['start_date_to']));
+                    })
+                    ->visible(fn () => auth()->user()?->role === 'admin'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -362,7 +418,14 @@ class ArchiveRecordResource extends Resource
                     ->form([
                         Forms\Components\Select::make('selected_archival_id_modal')
                             ->label('Chọn phông lưu trữ')
-                            ->options(Organization::pluck('name', 'id'))
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'admin') {
+                                    return Organization::pluck('name', 'id');
+                                } else {
+                                    return $user->organizations()->pluck('name', 'id');
+                                }
+                            })
                             ->required(),                       
 
                     ])
@@ -426,7 +489,7 @@ class ArchiveRecordResource extends Resource
                     })
                     ->color('info')
                     ->disabled()
-                    ->visible(fn () => session()->has('selected_archival_id')),
+                    ->visible(fn () => session()->has('selected_archival_id') && auth()->user()?->role === 'admin'),
 
                 Tables\Actions\Action::make('resetMucLuc')
                     ->label('Chọn lại mục lục')
@@ -435,7 +498,7 @@ class ArchiveRecordResource extends Resource
                     ->action(function () {
                         session()->forget('selected_archive_record_item_id');
                     })
-                    ->visible(fn () => session()->has('selected_archive_record_item_id')),
+                    ->visible(fn () => session()->has('selected_archive_record_item_id') && auth()->user()?->role === 'admin'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()

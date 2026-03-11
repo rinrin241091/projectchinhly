@@ -18,6 +18,12 @@ class SelectOrganization extends Page
     public ?string $type = null;
     public ?int $organizationId = null; // chosen organization id
 
+    //chỉ admin mới có quyền truy cập trang này để chọn phông, người dùng bình thường sẽ được gán phông mặc định và không cần chọn lại
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role === 'admin';
+    }
+
     public function mount(): void
     {
         // khi truy cập trang chọn phông, luôn xóa phiên trước
@@ -37,13 +43,14 @@ class SelectOrganization extends Page
 
     public function save(): void
     {
+        $organization = Organization::find($this->organizationId);
+        
         session([
             'organization_type' => $this->type,
             'organization_id' => $this->organizationId,
             'selected_archival_id' => $this->organizationId,
+            'archival_id' => $organization?->archival_id, // Load archival of the organization
         ]);
-
-        $organization = Organization::find($this->organizationId);
 
         Notification::make()
             ->title('Đã chọn phông: ' . ($organization?->name ?? 'Không xác định'))

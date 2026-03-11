@@ -39,3 +39,32 @@ Route::get('/archive-records/{id}/documents/export-excel', [DocumentListControll
 
 Route::post('/archive-record-items/{id}/update-page-num', [ArchiveRecordPrintController::class, 'updatePageNum'])
     ->name('archive-record-items.update-page-num');
+
+// Route for changing organization/archival - available to all authenticated users
+Route::post('/change-organization', function (\Illuminate\Http\Request $request) {
+    $user = auth()->user();
+    $organizationId = $request->input('organization_id');
+    
+    if (!$organizationId) {
+        return response()->json(['success' => false, 'message' => 'Invalid organization ID'], 422);
+    }
+    
+    // Check if user has access to this organization
+    if ($user->role !== 'admin' && !$user->hasOrganization($organizationId)) {
+        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+    }
+    
+    // Get organization with archival
+    $organization = \App\Models\Organization::find($organizationId);
+    if (!$organization) {
+        return response()->json(['success' => false, 'message' => 'Organization not found'], 404);
+    }
+    
+    session([
+        'selected_archival_id' => $organizationId,
+        'archival_id' => $organization->archival_id, // Load archival of the organization
+        'selected_archive_record_item_id' => null, // Reset archive record item
+    ]);
+    
+    return response()->json(['success' => true, 'message' => 'Organization changed successfully']);
+})->name('change-organization')->middleware('auth');

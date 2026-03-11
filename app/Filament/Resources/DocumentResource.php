@@ -111,11 +111,35 @@ class DocumentResource extends Resource
         return $table
 
             ->modifyQueryUsing(function (Builder $query) {
-                if ($recordId = session('selected_archive_record_id')) {
-                    $query->where('archive_record_id', $recordId);
+                $user = auth()->user();
+                if (!$user) return $query;
+                
+                // Admin can see everything - no filtering
+                if ($user->role === 'admin') {
+                    return $query;
                 }
+                
+                // Non-admin: must select an organization and only see that org's data
+                if ($orgId = session('selected_archival_id')) {
+                    if (!$user->hasOrganization($orgId)) {
+                        // User doesn't have access to this organization
+                        return $query->whereRaw('1 = 0'); // Show nothing
+                    }
+                    // Filter to selected organization
+                    $query->whereHas('archive_record', function ($q) use ($orgId) {
+                        $q->where('organization_id', $orgId);
+                    });
+                    // Also filter by selected archive record if applicable
+                    if ($recordId = session('selected_archive_record_id')) {
+                        $query->where('archive_record_id', $recordId);
+                    }
+                } else {
+                    // Non-admin without selected organization: show nothing
+                    return $query->whereRaw('1 = 0');
+                }
+                
                 return $query;
-})
+            })
 
             ->columns([
                 Tables\Columns\TextColumn::make('document_code')

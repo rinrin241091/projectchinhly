@@ -91,6 +91,30 @@ class ArchiveRecordItemResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+                if (!$user) return $query;
+                
+                // Admin can see everything - no filtering
+                if ($user->role === 'admin') {
+                    return $query;
+                }
+                
+                // Non-admin: must select an organization and only see that org's data
+                if ($orgId = session('selected_archival_id')) {
+                    if (!$user->hasOrganization($orgId)) {
+                        // User doesn't have access to this organization
+                        return $query->whereRaw('1 = 0'); // Show nothing
+                    }
+                    // Filter to selected organization
+                    $query->where('organization_id', $orgId);
+                } else {
+                    // Non-admin without selected organization: show nothing
+                    return $query->whereRaw('1 = 0');
+                }
+                
+                return $query;
+            })
             ->columns([
                 // Cột ID
                 Tables\Columns\TextColumn::make('id')->sortable(),

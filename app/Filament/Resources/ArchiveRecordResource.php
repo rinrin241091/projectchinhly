@@ -414,14 +414,27 @@ class ArchiveRecordResource extends Resource
                     ->label('Xuất Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->action(function () {
+                        $user = auth()->user();
                         $query = static::getModel()::query();
+                        $organizationId = session('selected_archival_id');
+                        $archiveRecordItemId = session('selected_archive_record_item_id');
 
-                        $archive_record_item = session('selected_archive_record_item_id');
-                        if (!empty($archive_record_item)) {
-                            $query->where('archive_record_item_id', $archive_record_item);
+                        if ($user?->role === 'admin') {
+                            if (!empty($organizationId)) {
+                                $query->where('organization_id', $organizationId);
+                            }
+                        } elseif (!empty($organizationId) && $user?->hasOrganization($organizationId)) {
+                            $query->where('organization_id', $organizationId);
+                        } else {
+                            $query->whereRaw('1 = 0');
                         }
 
-                        $export = new \App\Exports\ArchiveRecordsExport($query);
+                        if (!empty($archiveRecordItemId)) {
+                            $query->where('archive_record_item_id', $archiveRecordItemId);
+                        }
+
+                        $organization = $organizationId ? Organization::find($organizationId) : null;
+                        $export = new \App\Exports\ArchiveRecordsExport($query, $organization);
                         return $export->download('archive_records.xlsx');
                     })
                     ->visible(fn () => session()->has('selected_archival_id') && static::canExport()),

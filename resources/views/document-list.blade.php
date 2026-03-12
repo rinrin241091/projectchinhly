@@ -50,9 +50,13 @@
     </style>
 </head>
 <body>
+    @php
+        $isPartyOrganization = $archiveRecord->organization?->type === 'Đảng';
+    @endphp
+
     <h3 style="text-align: center">MỤC LỤC VĂN BẢN, TÀI LIỆU</h3>
     <b><p style="text-align: center; margin-bottom: 40px;">{{ $archiveRecord->title }}</p></b>
-    <p style="text-align: center; margin-bottom: 40px;">Hộp số: {{$archiveRecord->box->code}}</p>
+    <p style="text-align: center; margin-bottom: 40px;">Hộp số: {{ $archiveRecord->box->code ?? 'N/A' }}</p>
     
     <div style="display: flex; justify-content: center; gap: 20px; margin: 20px auto;" class="no-print">
         <button onclick="window.print()" class="export-button" style="border: none; cursor: pointer;">In mục lục tài liệu</button>
@@ -62,27 +66,85 @@
     @if($documents->count() > 0)
         <table>
             <thead>
-                <tr>
-                    <th>Số thứ tự</th>
-                    <th>Số, Ký hiệu</th>
-                    <th>Ngày tháng văn bản</th>
-                    <th>Trích yếu nội dung văn bản</th>
-                    <th>Tác giả văn bản</th>
-                    <th>Tờ số</th>
-                    <th>Ghi chú</th>
-                </tr>
+                @if ($isPartyOrganization)
+                    <tr>
+                        <th>Số TT</th>
+                        <th>Số của văn bản</th>
+                        <th>Ký hiệu của văn bản</th>
+                        <th>Ngày, tháng, năm văn bản</th>
+                        <th>Tên cơ quan, tổ chức ban hành văn bản</th>
+                        <th>Tên loại văn bản</th>
+                        <th>Trích yếu nội dung</th>
+                        <th>Người ký</th>
+                        <th>Độ mật</th>
+                        <th>Loại bản</th>
+                        <th>Trang số</th>
+                        <th>Số trang</th>
+                        <th>Số lượng tệp (file)</th>
+                        <th>Tên tệp</th>
+                        <th>Thời gian tài liệu</th>
+                        <th>Chế độ sử dụng</th>
+                        <th>Từ khóa</th>
+                        <th>Ghi chú</th>
+                        <th>Ngôn ngữ</th>
+                        <th>Bút tích</th>
+                        <th>Chuyên đề</th>
+                        <th>Ký hiệu thông tin</th>
+                        <th>Mức độ tin cậy</th>
+                        <th>Tình trạng vật lý</th>
+                    </tr>
+                @else
+                    <tr>
+                        <th>Số thứ tự</th>
+                        <th>Số, Ký hiệu</th>
+                        <th>Ngày tháng văn bản</th>
+                        <th>Trích yếu nội dung văn bản</th>
+                        <th>Tác giả văn bản</th>
+                        <th>Tờ số</th>
+                        <th>Ghi chú</th>
+                    </tr>
+                @endif
             </thead>
             <tbody>
                 @foreach($documents as $document)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $document->document_code ?? 'N/A' }}</td>
-                        <td>{{ $document->document_date ?? 'N/A' }}</td>
-                        <td>{{ $document->description }}</td>
-                        <td>{{ $document->author ?? 'N/A' }}</td>
-                        <td>{{ $document->page_number ?? 'N/A' }}</td>
-                        <td>{{ $document->note ?? 'N/A' }}</td>
-                    </tr>
+                    @if ($isPartyOrganization)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $document->document_number ?? $document->document_code ?? 'N/A' }}</td>
+                            <td>{{ $document->document_symbol ?? $document->document_code ?? 'N/A' }}</td>
+                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : 'N/A' }}</td>
+                            <td>{{ $document->issuing_agency ?? 'N/A' }}</td>
+                            <td>{{ $document->docType->name ?? 'N/A' }}</td>
+                            <td>{{ $document->description ?? 'N/A' }}</td>
+                            <td>{{ $document->signer ?? $document->author ?? 'N/A' }}</td>
+                            <td>{{ $document->security_level ?? 'N/A' }}</td>
+                            <td>{{ $document->copy_type ?? 'N/A' }}</td>
+                            <td>{{ $document->page_number ?? 'N/A' }}</td>
+                            <td>{{ $document->total_pages ?? 'N/A' }}</td>
+                            <td>{{ $document->file_count ?? 'N/A' }}</td>
+                            <td>{{ $document->file_name ?? 'N/A' }}</td>
+                            <td>{{ $document->document_duration ?? 'N/A' }}</td>
+                            <td>{{ $document->usage_mode ?? 'N/A' }}</td>
+                            <td>{{ $document->keywords ?? 'N/A' }}</td>
+                            <td>{{ $document->note ?? 'N/A' }}</td>
+                            <td>{{ $document->language ?? 'N/A' }}</td>
+                            <td>{{ $document->handwritten ?? 'N/A' }}</td>
+                            <td>{{ $document->topic ?? 'N/A' }}</td>
+                            <td>{{ $document->information_code ?? 'N/A' }}</td>
+                            <td>{{ $document->reliability_level ?? 'N/A' }}</td>
+                            <td>{{ $document->physical_condition ?? 'N/A' }}</td>
+                        </tr>
+                    @else
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $document->document_code ?? 'N/A' }}</td>
+                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : 'N/A' }}</td>
+                            <td>{{ $document->description ?? 'N/A' }}</td>
+                            <td>{{ $document->author ?? $document->signer ?? 'N/A' }}</td>
+                            <td>{{ $document->page_number ?? 'N/A' }}</td>
+                            <td>{{ $document->note ?? 'N/A' }}</td>
+                        </tr>
+                    @endif
                 @endforeach
             </tbody>
         </table>

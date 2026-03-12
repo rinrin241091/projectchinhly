@@ -12,7 +12,7 @@ class DocumentListController extends Controller
 {
     public function show($id)
     {
-        $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization'])->findOrFail($id);
+        $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization', 'box'])->findOrFail($id);
         
         return view('document-list', [
             'archiveRecord' => $archiveRecord,
@@ -45,7 +45,7 @@ class DocumentListController extends Controller
 
     public function exportExcel($id)
     {
-        $archiveRecord = ArchiveRecord::findOrFail($id);
+        $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization', 'box'])->findOrFail($id);
         
         return Excel::download(new DocumentListExport($archiveRecord), "danh-sach-tai-lieu-{$archiveRecord->code}.xlsx");
     }

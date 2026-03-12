@@ -53,65 +53,68 @@ class ArchiveRecordResource extends Resource
                                 ->visible(fn () => session()->has('selected_archival_id')),
                             Forms\Components\Select::make('storage_id')
                                 ->label('Chọn kho')
-                                ->options(function ($state, callable $set, $record) {
-                                    $orgId = session('selected_archival_id');
+                                ->options(function ($record) {
+                                    // Khi sửa record: lấy archival từ box đang gán
+                                    // Khi tạo mới: lấy archival từ phông đang chọn trong session
+                                    $archivalId = $record?->box?->shelf?->storage?->archival_id
+                                        ?? $record?->storage?->archival_id
+                                        ?? (($orgId = session('selected_archival_id'))
+                                            ? Organization::find($orgId)?->archival_id
+                                            : null);
 
-                                    $arId = $orgId ? Organization::find($orgId)?->archival_id  : null;
-                                    
+                                    if (!$archivalId) return [];
 
-                                    $archivalId = $record->box?->shelf?->storage?->archival?->id ?? $arId;
-                                  //  return \Log::info(session('selected_archival_id').$arId);
-                                  //  if (!$archivalId) 
-                                    
                                     return \App\Models\Storage::where('archival_id', $archivalId)
                                         ->pluck('name', 'id')
                                         ->toArray();
                                 })
                                 ->afterStateHydrated(function ($state, callable $set, $record) {
-                                    if (!$state && $record?->storage_id) {
-                                        $set('storage_id', $record->box?->shelf?->storage?->id);
+                                    if (!$state && $record?->box_id) {
+                                        $set('storage_id', $record?->box?->shelf?->storage?->id);
                                     }
                                 })
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(fn ($set) => $set('shelve_id', null)),
+                                ->afterStateUpdated(function (callable $set) {
+                                    $set('shelve_id', null);
+                                    $set('box_id', null);
+                                }),
                             Forms\Components\Select::make('shelve_id')
-                                ->statePath('shelve_id')
                                 ->label('Chọn kệ chứa')
                                 ->options(function (callable $get) {
                                     $storageId = $get('storage_id');
                                     return $storageId
-                                        ? Shelf::where('storage_id', $storageId)->pluck('description', 'id')
+                                        ? Shelf::where('storage_id', $storageId)->pluck('description', 'id')->toArray()
                                         : [];
                                 })
                                 ->afterStateHydrated(function ($state, callable $set, $record) {
-                                    if (!$state && $record?->storage_id) {
-                                        $set('shelve_id', $record->box?->shelf?->id);
+                                    if (!$state && $record?->box_id) {
+                                        $set('shelve_id', $record?->box?->shelf?->id);
                                     }
                                 })
                                 ->required()
                                 ->reactive()
-                                ->disabled(fn (callable $get) => !$get('storage_id')),
+                                ->disabled(fn (callable $get) => !$get('storage_id'))
+                                ->afterStateUpdated(fn (callable $set) => $set('box_id', null)),
                             // ------------------------------------//
                             
 
                             // --------------------------------//
                             Forms\Components\Select::make('box_id')
                             ->label($fieldLabels['box_id'])
-                            ->options(function ($state, callable $get, $record) {
+                            ->options(function (callable $get) {
                                 $shelfId = $get('shelve_id');
-                                //$shelfId = $record->box?->shelf?->id ?? session('selected_shelf_id');
                                 if (!$shelfId) return [];
-                                
+
                                 return Box::where('shelf_id', $shelfId)
                                     ->get()
                                     ->mapWithKeys(fn ($box) => [$box->id => $box->code . ' - ' . $box->description])
                                     ->toArray();
                             })
                             ->default(fn () => session('selected_box_id'))
-                            ->searchable(['code', 'description'])
                             ->required()
-                            ->reactive(),
+                            ->reactive()
+                            ->disabled(fn (callable $get) => !$get('shelve_id')),
                             //---------------------------------//
 
                             Forms\Components\Select::make('archive_record_item_id')

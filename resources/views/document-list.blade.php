@@ -56,7 +56,7 @@
 
     <h3 style="text-align: center">MỤC LỤC VĂN BẢN, TÀI LIỆU</h3>
     <b><p style="text-align: center; margin-bottom: 40px;">{{ $archiveRecord->title }}</p></b>
-    <p style="text-align: center; margin-bottom: 40px;">Hộp số: {{ $archiveRecord->box->code ?? 'N/A' }}</p>
+    <p style="text-align: center; margin-bottom: 40px;">Hộp số: {{ $archiveRecord->box->code ?? '' }}</p>
     
     <div style="display: flex; justify-content: center; gap: 20px; margin: 20px auto;" class="no-print">
         <button onclick="window.print()" class="export-button" style="border: none; cursor: pointer;">In mục lục tài liệu</button>
@@ -110,39 +110,39 @@
                     @if ($isPartyOrganization)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td>{{ $document->document_number ?? $document->document_code ?? 'N/A' }}</td>
-                            <td>{{ $document->document_symbol ?? $document->document_code ?? 'N/A' }}</td>
-                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : 'N/A' }}</td>
-                            <td>{{ $document->issuing_agency ?? 'N/A' }}</td>
-                            <td>{{ $document->docType->name ?? 'N/A' }}</td>
-                            <td>{{ $document->description ?? 'N/A' }}</td>
-                            <td>{{ $document->signer ?? $document->author ?? 'N/A' }}</td>
-                            <td>{{ $document->security_level ?? 'N/A' }}</td>
-                            <td>{{ $document->copy_type ?? 'N/A' }}</td>
-                            <td>{{ $document->page_number ?? 'N/A' }}</td>
-                            <td>{{ $document->total_pages ?? 'N/A' }}</td>
-                            <td>{{ $document->file_count ?? 'N/A' }}</td>
-                            <td>{{ $document->file_name ?? 'N/A' }}</td>
-                            <td>{{ $document->document_duration ?? 'N/A' }}</td>
-                            <td>{{ $document->usage_mode ?? 'N/A' }}</td>
-                            <td>{{ $document->keywords ?? 'N/A' }}</td>
-                            <td>{{ $document->note ?? 'N/A' }}</td>
-                            <td>{{ $document->language ?? 'N/A' }}</td>
-                            <td>{{ $document->handwritten ?? 'N/A' }}</td>
-                            <td>{{ $document->topic ?? 'N/A' }}</td>
-                            <td>{{ $document->information_code ?? 'N/A' }}</td>
-                            <td>{{ $document->reliability_level ?? 'N/A' }}</td>
-                            <td>{{ $document->physical_condition ?? 'N/A' }}</td>
+                            <td>{{ $document->document_number ?? $document->document_code ?? '' }}</td>
+                            <td>{{ $document->document_symbol ?? $document->document_code ?? '' }}</td>
+                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : '' }}</td>
+                            <td>{{ $document->issuing_agency ?? '' }}</td>
+                            <td>{{ $document->docType->name ?? '' }}</td>
+                            <td>{{ $document->description ?? '' }}</td>
+                            <td>{{ $document->signer ?? $document->author ?? '' }}</td>
+                            <td>{{ $document->security_level ?? '' }}</td>
+                            <td>{{ $document->copy_type ?? '' }}</td>
+                            <td>{{ $document->page_number ?? '' }}</td>
+                            <td>{{ $document->total_pages ?? '' }}</td>
+                            <td>{{ $document->file_count ?? '' }}</td>
+                            <td>{{ $document->file_name ?? '' }}</td>
+                            <td>{{ $document->document_duration ?? '' }}</td>
+                            <td>{{ $document->usage_mode ?? '' }}</td>
+                            <td>{{ $document->keywords ?? '' }}</td>
+                            <td>{{ $document->note ?? '' }}</td>
+                            <td>{{ $document->language ?? '' }}</td>
+                            <td>{{ $document->handwritten ?? '' }}</td>
+                            <td>{{ $document->topic ?? '' }}</td>
+                            <td>{{ $document->information_code ?? '' }}</td>
+                            <td>{{ $document->reliability_level ?? '' }}</td>
+                            <td>{{ $document->physical_condition ?? '' }}</td>
                         </tr>
                     @else
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td>{{ $document->document_code ?? 'N/A' }}</td>
-                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : 'N/A' }}</td>
-                            <td>{{ $document->description ?? 'N/A' }}</td>
-                            <td>{{ $document->author ?? $document->signer ?? 'N/A' }}</td>
-                            <td>{{ $document->page_number ?? 'N/A' }}</td>
-                            <td>{{ $document->note ?? 'N/A' }}</td>
+                            <td>{{ $document->document_code ?? '' }}</td>
+                            <td>{{ $document->document_date ? \Carbon\Carbon::parse($document->document_date)->format('d/m/Y') : '' }}</td>
+                            <td>{{ $document->description ?? '' }}</td>
+                            <td>{{ $document->author ?? $document->signer ?? '' }}</td>
+                            <td>{{ $document->page_number ?? '' }}</td>
+                            <td>{{ $document->note ?? '' }}</td>
                         </tr>
                     @endif
                 @endforeach

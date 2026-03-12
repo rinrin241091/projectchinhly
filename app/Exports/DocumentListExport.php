@@ -72,39 +72,39 @@ class DocumentListExport implements FromCollection, WithHeadings, WithMapping, S
 
             return [
                 $this->rowNumber,
-                $document->document_number ?: $document->document_code ?: 'N/A',
-                $document->document_symbol ?: $document->document_code ?: 'N/A',
+                $document->document_number ?: $document->document_code ?: '',
+                $document->document_symbol ?: $document->document_code ?: '',
                 $this->formatDate($document->document_date),
-                $document->issuing_agency ?? 'N/A',
-                $document->docType->name ?? 'N/A',
-                $document->description ?? 'N/A',
-                $document->signer ?: $document->author ?: 'N/A',
-                $document->security_level ?? 'N/A',
-                $document->copy_type ?? 'N/A',
-                $document->page_number ?? 'N/A',
-                $document->total_pages ?? 'N/A',
-                $document->file_count ?? 'N/A',
-                $document->file_name ?? 'N/A',
-                $document->document_duration ?? 'N/A',
-                $document->usage_mode ?? 'N/A',
-                $document->keywords ?? 'N/A',
-                $document->note ?? 'N/A',
-                $document->language ?? 'N/A',
-                $document->handwritten ?? 'N/A',
-                $document->topic ?? 'N/A',
-                $document->information_code ?? 'N/A',
-                $document->reliability_level ?? 'N/A',
-                $document->physical_condition ?? 'N/A',
+                $document->issuing_agency ?? '',
+                $document->docType->name ?? '',
+                $document->description ?? '',
+                $document->signer ?: $document->author ?: '',
+                $document->security_level ?? '',
+                $document->copy_type ?? '',
+                $document->page_number ?? '',
+                $document->total_pages ?? '',
+                $document->file_count ?? '',
+                $document->file_name ?? '',
+                $document->document_duration ?? '',
+                $document->usage_mode ?? '',
+                $document->keywords ?? '',
+                $document->note ?? '',
+                $document->language ?? '',
+                $document->handwritten ?? '',
+                $document->topic ?? '',
+                $document->information_code ?? '',
+                $document->reliability_level ?? '',
+                $document->physical_condition ?? '',
             ];
         }
 
         return [
-            $document->document_code ?? 'N/A',
+            $document->document_code ?? '',
             $this->formatDate($document->document_date),
-            $document->description ?? 'N/A',
-            $document->author ?: $document->signer ?: 'N/A',
-            $document->page_number ?? 'N/A',
-            $document->note ?? 'N/A',
+            $document->description ?? '',
+            $document->author ?: $document->signer ?: '',
+            $document->page_number ?? '',
+            $document->note ?? '',
         ];
     }
 
@@ -116,7 +116,7 @@ class DocumentListExport implements FromCollection, WithHeadings, WithMapping, S
     private function formatDate($value): string
     {
         if (empty($value)) {
-            return 'N/A';
+            return '';
         }
 
         return Carbon::parse($value)->format('d/m/Y');

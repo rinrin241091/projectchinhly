@@ -18,12 +18,12 @@
                 <tbody>
                     @foreach($documents as $document)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 border-b">{{ $document->document_code ?? 'N/A' }}</td>
-                            <td class="px-4 py-2 border-b">{{ $document->docType->name ?? 'N/A' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $document->document_code ?? '' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $document->docType->name ?? '' }}</td>
                             <td class="px-4 py-2 border-b">{{ $document->description }}</td>
-                            <td class="px-4 py-2 border-b">{{ $document->author ?? 'N/A' }}</td>
-                            <td class="px-4 py-2 border-b">{{ $document->page_number ?? 'N/A' }}</td>
-                            <td class="px-4 py-2 border-b">{{ $document->document_date ?? 'N/A' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $document->author ?? '' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $document->page_number ?? '' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $document->document_date ?? '' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

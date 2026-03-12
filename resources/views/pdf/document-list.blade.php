@@ -57,12 +57,12 @@
             <tbody>
                 @foreach($documents as $document)
                     <tr>
-                        <td>{{ $document->document_code ?? 'N/A' }}</td>
-                        <td>{{ $document->document_date ?? 'N/A' }}</td>
+                        <td>{{ $document->document_code ?? '' }}</td>
+                        <td>{{ $document->document_date ?? '' }}</td>
                         <td>{{ $document->description }}</td>
-                        <td>{{ $document->author ?? 'N/A' }}</td>
-                        <td>{{ $document->organization ?? 'N/A' }}</td>
-                        <td>{{ $document->note ?? 'N/A' }}</td>
+                        <td>{{ $document->author ?? '' }}</td>
+                        <td>{{ $document->organization ?? '' }}</td>
+                        <td>{{ $document->note ?? '' }}</td>
                     </tr>
                 @endforeach
             </tbody>

@@ -151,13 +151,13 @@
             <!-- Phần giữa: "MỤC LỤC HỒ SƠ", tên phông, số trang, ... -->
             <div class="center-section">
                 <div class="cover-title">MỤC LỤC HỒ SƠ</div>
-                <p class="cover-info"><strong>PHÔNG LƯU TRỮ:</strong> {{ $archiveRecordItem->organization->name ?? 'N/A' }}</p>
+                <p class="cover-info"><strong>PHÔNG LƯU TRỮ:</strong> {{ $archiveRecordItem->organization->name ?? '' }}</p>
                 <p class="cover-info">
                     Từ hộp số {{ $fromBox }} đến hộp số {{ $toBox }} 
                     (Từ hồ sơ số {{ $fromRecord }} đến hồ sơ số {{ $toRecord }})
                 </p>
-                <p class="cover-info cover-info-left"><strong>Phông số:</strong> {{ $archiveRecordItem->organization->code ?? 'N/A' }}</p>
-                <p class="cover-info cover-info-left"><strong>Mục lục số:</strong> {{ $archiveRecordItem->archive_record_item_code ?? 'N/A' }}</p>
+                <p class="cover-info cover-info-left"><strong>Phông số:</strong> {{ $archiveRecordItem->organization->code ?? '' }}</p>
+                <p class="cover-info cover-info-left"><strong>Mục lục số:</strong> {{ $archiveRecordItem->archive_record_item_code ?? '' }}</p>
                 <p class="cover-info cover-info-left"><strong>Số trang:</strong> {{ $archiveRecordItem->page_num ?? $pageCount }}</p>
                 <p class="cover-info cover-info-right"><strong>Thời hạn bảo quản:</strong> {{ $archiveRecordItem->description }}</p>
                 
@@ -209,18 +209,18 @@
                     <tbody>
                         @foreach($records as $record)
                             <tr>
-                                <td>{{ $record->box->code ?? 'N/A' }}</td>
-                                <td>{{ $record->code ?? 'N/A' }}</td>
-                                <td>{{ $record->title ?? 'N/A' }}</td>
+                                <td>{{ $record->box->code ?? '' }}</td>
+                                <td>{{ $record->code ?? '' }}</td>
+                                <td>{{ $record->title ?? '' }}</td>
                                 <td>
-                                    {{ $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d/m/Y') : 'N/A' }}<br>
-                                    {{ $record->end_date ? \Carbon\Carbon::parse($record->end_date)->format('d/m/Y') : 'N/A' }}
+                                    {{ $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d/m/Y') : '' }}<br>
+                                    {{ $record->end_date ? \Carbon\Carbon::parse($record->end_date)->format('d/m/Y') : '' }}
                                 </td>
-                                <td>{{ $record->preservation_duration ?? 'N/A' }}</td>
+                                <td>{{ $record->preservation_duration ?? '' }}</td>
                                 @if($archiveRecordItem->description == 'Có thời hạn')
-                                    <td>{{ $record->condition ?? 'N/A' }}</td>
+                                    <td>{{ $record->condition ?? '' }}</td>
                                 @endif
-                                <td>{{ $record->page_count ?? 'N/A' }}</td>
+                                <td>{{ $record->page_count ?? '' }}</td>
                                 <td>{{$record->note}}</td>
                             </tr>
                         @endforeach

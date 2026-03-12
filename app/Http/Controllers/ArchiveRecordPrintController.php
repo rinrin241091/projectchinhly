@@ -19,10 +19,10 @@ class ArchiveRecordPrintController extends Controller
         ]);
 
         // Lấy giá trị nhỏ nhất và lớn nhất của hộp và hồ sơ
-        $fromBox = $records->first()->box->code ?? 'N/A';
-        $toBox = $records->last()->box->code ?? 'N/A';
-        $fromRecord = $records->first()->code ?? 'N/A';
-        $toRecord = $records->last()->code ?? 'N/A';
+        $fromBox = $records->first()->box->code ?? '';
+        $toBox = $records->last()->box->code ?? '';
+        $fromRecord = $records->first()->code ?? '';
+        $toRecord = $records->last()->code ?? '';
 
         // Tính số trang
         $recordsPerPage = 11;

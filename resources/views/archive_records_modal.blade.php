@@ -132,7 +132,7 @@
                 <tbody>
                     @foreach($records as $record)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 border-b">{{ $record->code ?? 'N/A' }}</td>
+                            <td class="px-4 py-2 border-b">{{ $record->code ?? '' }}</td>
                             <td class="px-4 py-2 border-b">{{ $record->title }}</td>
                             <td class="px-4 py-2 border-b">{{ $record->start_date }}</td>
                             <td class="px-4 py-2 border-b">{{ $record->end_date }}</td>

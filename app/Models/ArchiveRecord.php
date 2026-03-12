@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\ArchiveRecordItem;
+use Illuminate\Validation\ValidationException;
 
 class ArchiveRecord extends Model
 {
@@ -49,46 +50,44 @@ class ArchiveRecord extends Model
     public function documents(): HasMany {
         return $this->hasMany(Document::class, 'archive_record_id');
     }
+
     protected static function booted()
     {
-        static::creating(function ($record) {
-            \Log::info('archive_record_item_id:', [$record->archive_record_item_id]);
+        static::saving(function ($record) {
+            $record->reference_code = static::buildReferenceCode($record);
 
-            if (!$record->archive_record_item_id) {
-                \Log::warning('archive_record_item_id is null!');
+            if (empty($record->reference_code)) {
                 return;
             }
 
-            $item = $record->archiveRecordItem;
-            if (!$item) {
-                \Log::warning('archiveRecordItem not found!');
-                return;
-            }
+            $duplicateExists = static::query()
+                ->where('reference_code', $record->reference_code)
+                ->when($record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
+                ->exists();
 
-            $orgCode = $item->organization?->code ?? 'ORG';
-            $year = date('Y', strtotime($record->start_date ?? now()));
-
-            // Lấy giá trị code do người dùng nhập trong form
-            $userCode = $record->code ?? '0000';
-
-            $record->reference_code = "{$orgCode}-{$year}-{$userCode}";
-        });
-        
-        static::updating(function ($record) {
-            // Nếu code thay đổi, cập nhật lại reference_code
-            if ($record->isDirty('code')) {
-                $item = $record->archiveRecordItem;
-                if (!$item) {
-                    return;
-                }
-
-                $orgCode = $item->organization?->code ?? 'ORG';
-                $year = date('Y', strtotime($record->start_date ?? now()));
-                $userCode = $record->code ?? '0000';
-
-                $record->reference_code = "{$orgCode}-{$year}-{$userCode}";
+            if ($duplicateExists) {
+                throw ValidationException::withMessages([
+                    'code' => 'Mã tham chiếu đã tồn tại. Vui lòng nhập số hồ sơ khác.',
+                ]);
             }
         });
+    }
+
+    private static function buildReferenceCode(self $record): ?string
+    {
+        if (empty($record->code)) {
+            return null;
+        }
+
+        $organization = $record->organization
+            ?? ($record->organization_id ? Organization::find($record->organization_id) : null)
+            ?? $record->archiveRecordItem?->organization;
+
+        $orgCode = $organization?->code ?? 'ORG';
+        $year = date('Y', strtotime($record->start_date ?? now()));
+        $userCode = trim((string) $record->code);
+
+        return "{$orgCode}-{$year}-{$userCode}";
     }
 }
 

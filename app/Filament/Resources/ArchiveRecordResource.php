@@ -34,6 +34,8 @@ class ArchiveRecordResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $fieldLabels = static::getArchiveRecordFieldLabels();
+
         return $form->schema([
             Forms\Components\Grid::make()
                 ->schema([
@@ -95,7 +97,7 @@ class ArchiveRecordResource extends Resource
 
                             // --------------------------------//
                             Forms\Components\Select::make('box_id')
-                            ->label('Chọn hộp')
+                            ->label($fieldLabels['box_id'])
                             ->options(function ($state, callable $get, $record) {
                                 $shelfId = $get('shelve_id');
                                 //$shelfId = $record->box?->shelf?->id ?? session('selected_shelf_id');
@@ -123,7 +125,7 @@ class ArchiveRecordResource extends Resource
                                 ->visible(fn () => session()->has('selected_archival_id')),
 
                             Forms\Components\TextInput::make('code')
-                                ->label('Mã hồ sơ')
+                                ->label($fieldLabels['code'])
                                 ->required()
                                 ->live(!request()->route('record'))
                                 ->afterStateUpdated(function ($livewire, $component) {
@@ -166,7 +168,7 @@ class ArchiveRecordResource extends Resource
                             //         return $get('organization_id') || session()->has('selected_archival_id');
                             //     }),
                             Forms\Components\TextInput::make('title')
-                                ->label('Tiêu đề hồ sơ')
+                                ->label($fieldLabels['title'])
                                 ->required()
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
@@ -179,7 +181,7 @@ class ArchiveRecordResource extends Resource
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
                             Forms\Components\DatePicker::make('start_date')
-                                ->label('Ngày bắt đầu')
+                                ->label($fieldLabels['start_date'])
                                 ->required()
                                 ->native()
                                 ->displayFormat('d/m/Y')
@@ -187,8 +189,8 @@ class ArchiveRecordResource extends Resource
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
-                                Forms\Components\DatePicker::make('end_date')
-                                ->label('Ngày kết thúc')
+                            Forms\Components\DatePicker::make('end_date')
+                                ->label($fieldLabels['end_date'])
                                 ->required()
                                 ->native()
                                 ->displayFormat('d/m/Y')
@@ -242,14 +244,14 @@ class ArchiveRecordResource extends Resource
                             //         return $get('organization_id') || session()->has('selected_archival_id');
                             //     }),
                             Forms\Components\TextInput::make('preservation_duration')
-                                ->label('Thời hạn bảo quản')
+                                ->label($fieldLabels['preservation_duration'])
                                 ->placeholder('VD: 50 năm')
                                 ->columnSpan(1)
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
                             Forms\Components\TextInput::make('page_count')
-                                ->label('Số lượng tờ')
+                                ->label($fieldLabels['page_count'])
                                 ->numeric()
                                 ->minValue(0)
                                 ->columnSpan(1)
@@ -283,6 +285,43 @@ class ArchiveRecordResource extends Resource
                 ->columns(2)
                 ->columnSpanFull(),
         ]);
+    }
+
+    private static function getSelectedOrganizationType(): ?string
+    {
+        $archivalId = session('selected_archival_id');
+
+        return $archivalId ? Organization::find($archivalId)?->type : null;
+    }
+
+    private static function isPartyOrganization(): bool
+    {
+        return static::getSelectedOrganizationType() === 'Đảng';
+    }
+
+    private static function getArchiveRecordFieldLabels(): array
+    {
+        if (static::isPartyOrganization()) {
+            return [
+                'box_id' => 'Chọn hộp số',
+                'code' => 'Địa chỉ BQ',
+                'title' => 'Tên đơn vị bảo quản',
+                'start_date' => 'Ngày hồ sơ bắt đầu (BĐ)',
+                'end_date' => 'Ngày hồ sơ kết thúc (KT)',
+                'preservation_duration' => 'THBQ',
+                'page_count' => 'Số trang',
+            ];
+        }
+
+        return [
+            'box_id' => 'Chọn hộp',
+            'code' => 'Mã hồ sơ',
+            'title' => 'Tiêu đề hồ sơ',
+            'start_date' => 'Ngày bắt đầu',
+            'end_date' => 'Ngày kết thúc',
+            'preservation_duration' => 'Thời hạn bảo quản',
+            'page_count' => 'Số trang',
+        ];
     }
 
     public static function table(Table $table): Table
@@ -327,35 +366,7 @@ class ArchiveRecordResource extends Resource
                 
                 return $query;
 })
-            ->columns([
-                
-                
-                Tables\Columns\TextColumn::make('id')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('box.code')->label('Hộp số')->sortable(),
-                Tables\Columns\TextColumn::make('code')->label('Hồ sơ số')->searchable(),                
-                Tables\Columns\TextColumn::make('title')
-                    ->label('Tiêu đề hồ sơ')
-                    ->searchable()
-                    ->extraAttributes(['style' => 'width: 400px; white-space: normal;']),
-                Tables\Columns\TextColumn::make('start_date') // hoặc end_date
-                        ->label('Ngày tháng bắt đầu và kết thúc')
-                        ->html()
-                        ->wrap()
-                        ->formatStateUsing(function ($state, $record) {
-                            $start = $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d/m/Y') : '';
-                            $end = $record->end_date ? \Carbon\Carbon::parse($record->end_date)->format('d/m/Y') : '';
-                            return $start . '<br>' . $end;
-                        })
-                        ->searchable(),
-                Tables\Columns\TextColumn::make('preservation_duration')->label('Thời hạn bảo quản'),
-                Tables\Columns\TextColumn::make('page_count')->label('Số lượng tờ'),
-                // Tables\Columns\TextColumn::make('condition')->label('Tình trạng'),
-                // Tables\Columns\TextColumn::make('record_type_id')->label('Nhóm hồ sơ'),
-                Tables\Columns\TextColumn::make('archiveRecordItem.title')->label('Mục lục'),                
-                Tables\Columns\TextColumn::make('note')->label('Ghi chú')->wrap(),
-                 
-            ])
+            ->columns(static::resolveTableColumns())
             ->filters([
                 // Thêm filters cho Admin
                 Tables\Filters\SelectFilter::make('organization_id')
@@ -542,6 +553,77 @@ class ArchiveRecordResource extends Resource
    
    
 
+
+    private static function resolveTableColumns(): array
+    {
+        $black = fn (string $text) => new \Illuminate\Support\HtmlString(
+            '<span style="color: black; font-weight: 600;">' . e($text) . '</span>'
+        );
+
+        if (static::isPartyOrganization()) {
+            return [
+                Tables\Columns\TextColumn::make('id')
+                    ->label($black('STT'))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('code')
+                    ->label($black('Địa chỉ BQ'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('title')
+                    ->label($black('Tên đơn vị bảo quản'))
+                    ->searchable()
+                    ->extraAttributes(['style' => 'width: 400px; white-space: normal;']),
+                Tables\Columns\TextColumn::make('start_date')
+                    ->label($black('Ngày hồ sơ (BĐ - KT)'))
+                    ->html()
+                    ->wrap()
+                    ->formatStateUsing(function ($state, $record) {
+                        $start = $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d/m/Y') : '';
+                        $end   = $record->end_date   ? \Carbon\Carbon::parse($record->end_date)->format('d/m/Y')   : '';
+                        return $start . '<br>' . $end;
+                    })
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('preservation_duration')
+                    ->label($black('THBQ')),
+                Tables\Columns\TextColumn::make('page_count')
+                    ->label($black('Số trang')),
+                Tables\Columns\TextColumn::make('documents_count')
+                    ->counts('documents')
+                    ->label($black('Số tài liệu')),
+                Tables\Columns\TextColumn::make('box.code')
+                    ->label($black('Số cặp'))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('note')
+                    ->label($black('Ghi chú'))
+                    ->wrap(),
+            ];
+        }
+
+        // Default layout – Chính quyền hoặc chưa chọn phông
+        return [
+            Tables\Columns\TextColumn::make('id')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('box.code')->label('Hộp số')->sortable(),
+            Tables\Columns\TextColumn::make('code')->label('Hồ sơ số')->searchable(),
+            Tables\Columns\TextColumn::make('title')
+                ->label('Tiêu đề hồ sơ')
+                ->searchable()
+                ->extraAttributes(['style' => 'width: 400px; white-space: normal;']),
+            Tables\Columns\TextColumn::make('start_date')
+                ->label('Ngày tháng bắt đầu và kết thúc')
+                ->html()
+                ->wrap()
+                ->formatStateUsing(function ($state, $record) {
+                    $start = $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d/m/Y') : '';
+                    $end   = $record->end_date   ? \Carbon\Carbon::parse($record->end_date)->format('d/m/Y')   : '';
+                    return $start . '<br>' . $end;
+                })
+                ->searchable(),
+            Tables\Columns\TextColumn::make('preservation_duration')->label('Thời hạn bảo quản'),
+            Tables\Columns\TextColumn::make('page_count')->label('Số lượng tờ'),
+            Tables\Columns\TextColumn::make('archiveRecordItem.title')->label('Mục lục'),
+            Tables\Columns\TextColumn::make('note')->label('Ghi chú')->wrap(),
+        ];
+    }
 
     public static function getPages(): array
     {

@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\ArchiveRecordItem;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ArchiveRecord extends Model
 {
     use HasFactory;
+    use LogsActivity;
     protected $fillable = ['reference_code',
                            'code',
                            'organization_id',
@@ -49,6 +52,20 @@ class ArchiveRecord extends Model
     
     public function documents(): HasMany {
         return $this->hasMany(Document::class, 'archive_record_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('Hồ sơ lưu trữ')
+            ->setDescriptionForEvent(function (string $eventName): string {
+                $recordName = $this->title ?: ($this->code ?: ('#' . $this->getKey()));
+
+                return "Người dùng đã {$eventName} hồ sơ {$recordName}";
+            });
     }
 
     protected static function booted()

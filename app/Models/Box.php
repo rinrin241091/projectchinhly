@@ -32,7 +32,16 @@ class Box extends Model
             ->logAll() // log tất cả các trường
             ->logOnlyDirty() // chỉ log khi có thay đổi
             ->dontSubmitEmptyLogs()
-            ->useLogName('Hồ sơ lưu trữ')
-            ->setDescriptionForEvent(fn(string $eventName) => "Người dùng đã {$eventName} hồ sơ");
+            ->useLogName('Hộp lưu trữ')
+            ->setDescriptionForEvent(function (string $eventName): string {
+                $boxDescription = trim((string) ($this->description ?? ''));
+                $boxCode = trim((string) ($this->code ?? ''));
+
+                $boxName = $boxDescription !== ''
+                    ? ($boxCode !== '' ? "{$boxDescription} ({$boxCode})" : $boxDescription)
+                    : ($boxCode !== '' ? $boxCode : ('#' . $this->getKey()));
+
+                return "Người dùng đã {$eventName} hộp {$boxName}";
+            });
     }
 }

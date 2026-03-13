@@ -6,6 +6,7 @@ use App\Filament\Pages\BulkCreateShelves;
 use App\Filament\Pages\SelectOrganization;
 use App\Filament\Pages\BulkCreateBoxs;
 use App\Filament\Pages\ChangePassword;
+use App\Filament\Pages\Auth\Login as CaptchaLogin;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -35,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('dashboard')
             ->path('dashboard')
-            ->login()
+            ->login(CaptchaLogin::class)
             // Navigation is always enabled; visibility will be controlled via CSS hook
             ->colors([
                 'primary' => Color::Amber,

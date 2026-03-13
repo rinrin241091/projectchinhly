@@ -4,6 +4,17 @@ namespace App\Traits;
 
 trait RoleBasedPermissions
 {
+    protected static function hasAnyOrgRole($user, int $orgId, array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($user->hasOrganization($orgId, $role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected static function isDataEntryRole($user): bool
     {
         return $user && in_array($user->role, ['data_entry', 'input_data'], true);
@@ -63,8 +74,8 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // editors and admins within the org can create
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            // teamleads and editors within the org can create
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         return false;
     }
@@ -83,7 +94,7 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         return false;
     }
@@ -102,7 +113,7 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         return false;
     }
@@ -129,8 +140,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only admins and editors within the org can import (not viewers)
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            // Only teamleads and editors within the org can import (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         
         return false;
@@ -158,8 +169,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only admins and editors within the org can export (not viewers)
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            // Only teamleads and editors within the org can export (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         
         return false;
@@ -187,8 +198,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only org admins can manage members (not editors or viewers)
-            return $user->hasOrganization($orgId, 'admin');
+            // Only org teamleads can manage members (not editors or viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'admin']);
         }
         
         return false;
@@ -216,8 +227,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only org admins can create storage (not editors or viewers)
-            return $user->hasOrganization($orgId, 'admin') || $user->hasOrganization($orgId, 'editor');
+            // Only org teamleads and editors can create storage (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
         }
         
         return false;

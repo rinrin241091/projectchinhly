@@ -25,7 +25,7 @@ class OrganizationsRelationManager extends RelationManager
                 Forms\Components\Select::make('role')
                     ->label('Vai trò trong phông')
                     ->options([
-                        'admin' => 'Quản trị viên',
+                        'teamlead' => 'Teamlead',
                         'editor' => 'Người chỉnh sửa',
                         'viewer' => 'Người xem',
                     ])
@@ -46,12 +46,13 @@ class OrganizationsRelationManager extends RelationManager
                     ->label('Vai trò')
                     ->getStateUsing(fn ($record) => $record->pivot?->role ?? 'viewer')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'admin' => 'Quản trị viên',
+                        'teamlead' => 'Teamlead',
                         'editor' => 'Người chỉnh sửa',
                         'viewer' => 'Người xem',
+                        default => $state,
                     })
                     ->colors([
-                        'danger' => 'admin',
+                        'info' => 'teamlead',
                         'warning' => 'editor',
                         'success' => 'viewer',
                     ]),
@@ -61,7 +62,7 @@ class OrganizationsRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('role')
                     ->label('Vai trò')
                     ->options([
-                        'admin' => 'Quản trị viên',
+                        'teamlead' => 'Teamlead',
                         'editor' => 'Người chỉnh sửa',
                         'viewer' => 'Người xem',
                     ])
@@ -86,7 +87,7 @@ class OrganizationsRelationManager extends RelationManager
                         Forms\Components\Select::make('role')
                             ->label('Vai trò')
                             ->options([
-                                'admin' => 'Quản trị viên',
+                                'teamlead' => 'Teamlead',
                                 'editor' => 'Người chỉnh sửa',
                                 'viewer' => 'Người xem',
                             ])

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
@@ -45,6 +47,26 @@ class User extends Authenticatable implements FilamentUser
         'password' => 'hashed',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            if ($user->role !== 'admin') {
+                return;
+            }
+
+            $hasOtherAdmin = static::query()
+                ->where('role', 'admin')
+                ->when($user->exists, fn ($query) => $query->whereKeyNot($user->getKey()))
+                ->exists();
+
+            if ($hasOtherAdmin) {
+                throw ValidationException::withMessages([
+                    'role' => 'Hệ thống chỉ cho phép một tài khoản Admin toàn cục.',
+                ]);
+            }
+        });
+    }
+
     public function getFilamentName(): string
     {
         return "{$this->name} ({$this->email})";
@@ -64,6 +86,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(\App\Models\Organization::class)
                     ->withPivot('role')
                     ->withTimestamps();
+    }
+
+    public function managedProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_user')
+            ->withPivot('role')
+            ->withTimestamps();
     }
 
     /**

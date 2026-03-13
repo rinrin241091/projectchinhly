@@ -52,6 +52,7 @@ class UserResource extends Resource
                             ->label('Vai trò toàn cục')
                             ->options([
                                 'admin' => 'Admin',
+                                'teamlead' => 'Teamlead',
                                 'user' => 'User',
                                 'data_entry' => 'Nhân viên nhập liệu',
                                 'input_data' => 'InputData',
@@ -103,7 +104,7 @@ class UserResource extends Resource
                 ->getStateUsing(function ($record) {
                     return $record->organizations->map(function ($org) {
                         return match ($org->pivot->role) {
-                            'admin' => 'Quản trị viên',
+                            'teamlead' => 'Teamlead',
                             'editor' => 'Người chỉnh sửa',
                             'viewer' => 'Người xem',
                             default => $org->pivot->role,
@@ -112,7 +113,7 @@ class UserResource extends Resource
                 })
                 ->badge()
                 ->color(fn ($state) => match ($state) {
-                    'Quản trị viên' => 'danger',
+                    'Teamlead' => 'info',
                     'Người chỉnh sửa' => 'warning',
                     'Người xem' => 'success',
                     default => 'gray',
@@ -124,6 +125,7 @@ class UserResource extends Resource
                 ->badge()
                 ->formatStateUsing(fn ($state) => match ($state) {
                     'admin' => 'Admin',
+                    'teamlead' => 'Teamlead',
                     'user' => 'User',
                     'data_entry' => 'Nhân viên nhập liệu',
                     'input_data' => 'Nhập dữ liệu',
@@ -131,6 +133,7 @@ class UserResource extends Resource
                 })
                 ->color(fn ($state) => match ($state) {
                     'admin' => 'danger',
+                    'teamlead' => 'info',
                     'user' => 'success',
                     'data_entry' => 'warning',
                     'input_data' => 'warning',
@@ -192,7 +195,7 @@ class UserResource extends Resource
                     Forms\Components\Select::make('role')
                         ->label('Vai trò')
                         ->options([
-                            'admin' => 'Quản trị viên',
+                            'teamlead' => 'Teamlead',
                             'editor' => 'Người chỉnh sửa',
                             'viewer' => 'Người xem',
                         ])

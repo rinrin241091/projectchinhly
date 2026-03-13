@@ -29,7 +29,7 @@ class ImportDocuments extends Page
         if (!static::canImport()) {
             Notification::make()
                 ->title('Bị từ chối')
-                ->body('Bạn không có quyền truy cập trang import. Chỉ những người có vai trò Quản trị viên hoặc Chỉnh sửa mới có thể import.')
+                ->body('Bạn không có quyền truy cập trang import. Chỉ Quản trị viên, Teamlead hoặc Người chỉnh sửa mới có thể import.')
                 ->danger()
                 ->send();
             return redirect()->route('filament.dashboard.resources.documents.index');
@@ -73,7 +73,7 @@ class ImportDocuments extends Page
         if (!static::canImport()) {
             Notification::make()
                 ->title('Bị từ chối')
-                ->body('Bạn không có quyền import tài liệu. Chỉ những người có vai trò Quản trị viên hoặc Chỉnh sửa mới có thể import.')
+                ->body('Bạn không có quyền import tài liệu. Chỉ Quản trị viên, Teamlead hoặc Người chỉnh sửa mới có thể import.')
                 ->danger()
                 ->send();
             return redirect()->route('filament.dashboard.resources.documents.index');

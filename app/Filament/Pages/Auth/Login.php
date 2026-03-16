@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Auth;
 
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -71,7 +72,17 @@ class Login extends \Filament\Pages\Auth\Login
             ]);
         }
 
-        if (! Filament::auth()->attempt($this->getCredentialsFromFormData($data), $data['remember'] ?? false)) {
+        $credentials = $this->getCredentialsFromFormData($data);
+
+        if (! Filament::auth()->validate($credentials)) {
+            $this->generateCaptcha();
+
+            throw ValidationException::withMessages([
+                'data.email' => __('filament-panels::pages/auth/login.messages.failed'),
+            ]);
+        }
+
+        if (! Filament::auth()->attempt($credentials, $data['remember'] ?? false)) {
             $this->generateCaptcha();
 
             throw ValidationException::withMessages([
@@ -106,7 +117,7 @@ class Login extends \Filament\Pages\Auth\Login
             ->helperText('Nhập đúng ký tự theo ảnh captcha, có phân biệt chữ hoa/thường.')
             ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
             ->suffixAction(
-                \Filament\Forms\Components\Actions\Action::make('refreshCaptcha')
+                Action::make('refreshCaptcha')
                     ->icon('heroicon-m-arrow-path')
                     ->label('Đổi mã')
                     ->action(fn () => $this->refreshCaptcha())

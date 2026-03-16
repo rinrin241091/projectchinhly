@@ -54,6 +54,11 @@ class ArchiveRecord extends Model
         return $this->hasMany(Document::class, 'archive_record_id');
     }
 
+    public function borrowings(): HasMany
+    {
+        return $this->hasMany(Borrowing::class, 'archive_record_id');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

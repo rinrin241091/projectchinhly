@@ -68,3 +68,17 @@ Route::post('/change-organization', function (\Illuminate\Http\Request $request)
     
     return response()->json(['success' => true, 'message' => 'Organization changed successfully']);
 })->name('change-organization')->middleware('auth');
+
+Route::get('/dashboard/borrowings/pending-count-check', function () {
+    $user = auth()->user();
+
+    if (! $user || $user->role !== 'admin') {
+        return response()->json(['count' => 0]);
+    }
+
+    $count = \App\Models\Borrowing::query()
+        ->where('approval_status', 'pending')
+        ->count();
+
+    return response()->json(['count' => $count]);
+})->name('borrowings.pending-count')->middleware('auth');

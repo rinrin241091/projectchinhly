@@ -142,6 +142,7 @@ class ActivityResource extends Resource
         return match ($record->subject_type) {
             \App\Models\ArchiveRecord::class => 'Hồ sơ lưu trữ',
             \App\Models\ArchiveRecordItem::class => 'Mục lục hồ sơ',
+            \App\Models\Borrowing::class => 'Mượn trả hồ sơ',
             \App\Models\Box::class => 'Hộp lưu trữ',
             \App\Models\Shelf::class => 'Kệ lưu trữ',
             \App\Models\Storage::class => 'Kho lưu trữ',
@@ -159,6 +160,7 @@ class ActivityResource extends Resource
         return match ($record->subject_type) {
             \App\Models\ArchiveRecord::class => 'hồ sơ',
             \App\Models\ArchiveRecordItem::class => 'mục lục hồ sơ',
+            \App\Models\Borrowing::class => 'mượn trả hồ sơ',
             \App\Models\Box::class => 'hộp',
             \App\Models\Shelf::class => 'kệ',
             \App\Models\Storage::class => 'kho',

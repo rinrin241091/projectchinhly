@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
     {
         // Get or create a sample archival
         $archival = \App\Models\Archival::firstOrCreate(
-            ['code' => 'ARCHIVAL_001'],
+            ['identifier' => 'ARCHIVAL_001'],
             [
                 'name' => 'Cơ quan lưu trữ mẫu',
                 'address' => 'Địa chỉ mẫu',
@@ -54,7 +54,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make('88888888'),
                 'role' => 'admin',
             ]
         );
@@ -70,7 +70,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'user@example.com'],
             [
                 'name' => 'User',
-                'password' => Hash::make('user123'),
+                'password' => Hash::make('88888888'),
                 'role' => 'user',
             ]
         );
@@ -85,7 +85,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'tudangm10@gmail.com'],
             [
                 'name' => 'Tú Dăng',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('88888888'),
                 'role' => 'user',
             ]
         );

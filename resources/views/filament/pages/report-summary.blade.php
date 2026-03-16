@@ -105,7 +105,6 @@
             </div>
         @else
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-14 text-center dark:border-gray-700 dark:bg-gray-900">
-                <x-heroicon-o-document-chart-bar class="mx-auto h-14 w-14 text-gray-300" />
                 <p class="mt-4 text-lg font-medium text-gray-500">Chưa có dữ liệu báo cáo</p>
                 <p class="text-sm text-gray-400 mt-1">Chọn tiêu chí rồi nhấn <strong class="text-primary-600">Xem báo cáo</strong> để tổng hợp số liệu.</p>
             </div>

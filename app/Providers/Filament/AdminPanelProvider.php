@@ -5,7 +5,11 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Dashboard as DashboardPage;
 use App\Filament\Pages\BulkCreateShelves;
 use App\Filament\Pages\QuickArchiveSearch;
+use App\Filament\Pages\ProgressReport;
+use App\Filament\Pages\RecordDocumentReport;
+use App\Filament\Pages\RecordStatisticsReport;
 use App\Filament\Pages\ReportSummary;
+use App\Filament\Pages\RoomDirectoryReport;
 use App\Filament\Pages\SelectOrganization;
 use App\Filament\Pages\BulkCreateBoxs;
 use App\Filament\Pages\ChangePassword;
@@ -104,6 +108,10 @@ class AdminPanelProvider extends PanelProvider
                     ]),
                     NavigationGroup::make('Báo cáo - Thống kê')->items([
                         ...$pageItems(ReportSummary::class),
+                        ...$pageItems(ProgressReport::class),
+                        ...$pageItems(RecordStatisticsReport::class),
+                        ...$pageItems(RecordDocumentReport::class),
+                        ...$pageItems(RoomDirectoryReport::class),
                     ]),
                 ]);
             })

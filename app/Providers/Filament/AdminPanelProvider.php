@@ -4,6 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard as DashboardPage;
 use App\Filament\Pages\BulkCreateShelves;
+use App\Filament\Pages\QuickArchiveSearch;
+use App\Filament\Pages\ReportSummary;
 use App\Filament\Pages\SelectOrganization;
 use App\Filament\Pages\BulkCreateBoxs;
 use App\Filament\Pages\ChangePassword;
@@ -61,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('5s')
             ->darkmode(condition:false)
+            ->sidebarWidth('15.5rem')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->navigation(function (NavigationBuilder $builder): NavigationBuilder {
@@ -77,6 +80,7 @@ class AdminPanelProvider extends PanelProvider
                         ...$pageItems(DashboardPage::class),
                         ...$resourceItems(ActivityResource::class),
                         ...$resourceItems(ProjectResource::class),
+                        ...$pageItems(QuickArchiveSearch::class),
                     ]),
                     NavigationGroup::make('Nhập liệu - Biên mục')->items([
                         ...$resourceItems(ArchiveRecordResource::class),
@@ -97,6 +101,9 @@ class AdminPanelProvider extends PanelProvider
                     ]),
                     NavigationGroup::make('Quản lý hệ thống')->items([
                         ...$resourceItems(UserResource::class),
+                    ]),
+                    NavigationGroup::make('Báo cáo - Thống kê')->items([
+                        ...$pageItems(ReportSummary::class),
                     ]),
                 ]);
             })

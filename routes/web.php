@@ -82,3 +82,11 @@ Route::get('/dashboard/borrowings/pending-count-check', function () {
 
     return response()->json(['count' => $count]);
 })->name('borrowings.pending-count')->middleware('auth');
+
+// Report export routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/reports/summary/pdf', [\App\Http\Controllers\ReportSummaryController::class, 'pdf'])
+        ->name('report.summary.pdf');
+    Route::get('/reports/summary/excel', [\App\Http\Controllers\ReportSummaryController::class, 'excel'])
+        ->name('report.summary.excel');
+});

@@ -49,6 +49,11 @@ class ArchiveRecord extends Model
     public function storage(): BelongsTo {
         return $this->belongsTo(Storage::class);
     }
+
+    public function recordType(): BelongsTo
+    {
+        return $this->belongsTo(RecordType::class, 'record_type_id');
+    }
     
     public function documents(): HasMany {
         return $this->hasMany(Document::class, 'archive_record_id');

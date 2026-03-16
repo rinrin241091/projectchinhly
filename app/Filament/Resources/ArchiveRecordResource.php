@@ -6,6 +6,7 @@ use App\Traits\RoleBasedPermissions;
 use App\Filament\Resources\ArchiveRecordResource\Pages;
 use App\Models\ArchiveRecord;
 use App\Models\ArchiveRecordItem;
+use App\Models\RecordType;
 use App\Models\Organization;
 use App\Models\Archival;
 use App\Models\Storage;
@@ -371,6 +372,47 @@ class ArchiveRecordResource extends Resource
 })
             ->columns(static::resolveTableColumns())
             ->filters([
+                Tables\Filters\Filter::make('quick_search')
+                    ->label('Tìm kiếm nhanh hồ sơ')
+                    ->form([
+                        Forms\Components\TextInput::make('code')
+                            ->label('Mã hồ sơ')
+                            ->placeholder('Nhập mã hồ sơ...'),
+                        Forms\Components\TextInput::make('title')
+                            ->label('Tiêu đề hồ sơ')
+                            ->placeholder('Nhập tiêu đề hồ sơ...'),
+                        Forms\Components\DatePicker::make('date_from')
+                            ->label('Giai đoạn từ ngày')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d'),
+                        Forms\Components\DatePicker::make('date_to')
+                            ->label('Giai đoạn đến ngày')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d'),
+                        Forms\Components\Select::make('record_type_id')
+                            ->label('Loại hồ sơ')
+                            ->options(fn () => RecordType::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->columns(2)
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['code'] ?? null, function (Builder $q, $value): Builder {
+                                $keyword = trim((string) $value);
+
+                                return $q->where(function (Builder $inner) use ($keyword): void {
+                                    $inner
+                                        ->where('code', 'like', "%{$keyword}%")
+                                        ->orWhere('reference_code', 'like', "%{$keyword}%");
+                                });
+                            })
+                            ->when($data['title'] ?? null, fn (Builder $q, $value): Builder => $q->where('title', 'like', '%' . trim((string) $value) . '%'))
+                            ->when($data['record_type_id'] ?? null, fn (Builder $q, $value): Builder => $q->where('record_type_id', $value))
+                            ->when($data['date_from'] ?? null, fn (Builder $q, $value): Builder => $q->whereDate('end_date', '>=', $value))
+                            ->when($data['date_to'] ?? null, fn (Builder $q, $value): Builder => $q->whereDate('start_date', '<=', $value));
+                    }),
+
                 // Thêm filters cho Admin
                 Tables\Filters\SelectFilter::make('organization_id')
                     ->label('Lọc theo phông')
@@ -383,7 +425,7 @@ class ArchiveRecordResource extends Resource
                     ->visible(fn () => auth()->user()?->role === 'admin'),
                 
                 Tables\Filters\Filter::make('start_date')
-                    ->label('Lộc theo ngày bắt đầu')
+                    ->label('Lọc theo ngày bắt đầu')
                     ->form([
                         Forms\Components\DatePicker::make('start_date_from')
                             ->label('Từ ngày')

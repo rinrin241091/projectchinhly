@@ -16,6 +16,8 @@ class ActivityResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
+    protected static ?string $navigationLabel = 'Nhật kí hoạt động';
+
     private static array $subjectNameCache = [];
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

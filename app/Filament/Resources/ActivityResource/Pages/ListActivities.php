@@ -10,6 +10,11 @@ class ListActivities extends ListRecords
 {
     protected static string $resource = ActivityResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Nhật kí hoạt động';
+    }
+
     protected function getHeaderActions(): array
     {
         return [

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\ArchiveRecord;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,27 @@ class RecordDocumentReport extends Page
         $this->totalRecords = $rows->count();
         $this->totalDocuments = (int) $rows->sum('documents_count');
         $this->totalPages = (int) $rows->sum('document_pages');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportExcel')
+                ->label('Xuất Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->url(fn (): string => route('report.record-document.excel'))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+
+            Action::make('exportPdf')
+                ->label('In báo cáo (PDF)')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn (): string => route('report.record-document.pdf'))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+        ];
     }
 
     protected function buildReportRows(): Collection

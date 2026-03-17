@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Storage;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,27 @@ class RoomDirectoryReport extends Page
         $this->reportRows = $rows->toArray();
         $this->totalRooms = $rows->count();
         $this->totalRecords = (int) $rows->sum('records_count');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportExcel')
+                ->label('Xuất Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->url(fn (): string => route('report.room-directory.excel'))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+
+            Action::make('exportPdf')
+                ->label('In báo cáo (PDF)')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn (): string => route('report.room-directory.pdf'))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+        ];
     }
 
     protected function buildReportRows(): Collection

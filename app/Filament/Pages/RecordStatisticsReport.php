@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\ArchiveRecord;
 use App\Models\ArchiveRecordItem;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
@@ -73,6 +74,27 @@ class RecordStatisticsReport extends Page
     {
         $this->appliedFilters = $this->form->getState();
         $this->buildReport();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportExcel')
+                ->label('Xuất Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->url(fn (): string => route('report.record-statistics.excel', array_filter($this->appliedFilters ?? [])))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+
+            Action::make('exportPdf')
+                ->label('In báo cáo (PDF)')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn (): string => route('report.record-statistics.pdf', array_filter($this->appliedFilters ?? [])))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+        ];
     }
 
     protected function buildReport(): void

@@ -95,6 +95,13 @@ class ActivityResource extends Resource
                     ->sortable()
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('details')
+                    ->label('Chi tiết')
+                    ->state(function (Activity $record): string {
+                        return static::formatDeviceDetails($record);
+                    })
+                    ->wrap(),
+
                 Tables\Columns\TextColumn::make('event')
                     ->label('Hành động')
                     ->badge()
@@ -295,5 +302,55 @@ class ActivityResource extends Resource
         }
 
         return static::$subjectNameCache[$cacheKey] = null;
+    }
+
+    private static function formatDeviceDetails(Activity $record): string
+    {
+        $ip = static::readDetailValue($record, ['ip_address', 'ip']);
+        $mac = static::readDetailValue($record, ['mac_address', 'mac', 'device_mac']);
+        $os = static::readDetailValue($record, ['os', 'operating_system', 'platform']);
+        $deviceType = static::readDetailValue($record, ['device_type', 'device']);
+        $browser = static::readDetailValue($record, ['browser']);
+
+        $parts = [];
+
+        if ($ip) {
+            $parts[] = 'IP: ' . $ip;
+        }
+
+        if ($mac && strtoupper($mac) !== 'N/A') {
+            $parts[] = 'MAC: ' . $mac;
+        }
+
+        if ($os && $os !== 'Unknown') {
+            $parts[] = 'OS: ' . $os;
+        }
+
+        if ($deviceType && $deviceType !== 'Unknown') {
+            $parts[] = 'Thiết bị: ' . $deviceType;
+        }
+
+        if ($browser && $browser !== 'Unknown') {
+            $parts[] = 'Trình duyệt: ' . $browser;
+        }
+
+        return empty($parts) ? 'Chưa có dữ liệu thiết bị' : implode(' | ', $parts);
+    }
+
+    private static function readDetailValue(Activity $record, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            $value = trim((string) (
+                $record->properties?->get($key)
+                ?? $record->properties?->get('device.' . $key)
+                ?? ''
+            ));
+
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 }

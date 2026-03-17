@@ -7,6 +7,7 @@ use App\Models\ArchiveRecord;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Form;
@@ -96,6 +97,27 @@ class ProgressReport extends Page
     {
         $this->appliedFilters = $this->form->getState();
         $this->buildReport();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportExcel')
+                ->label('Xuất Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->url(fn (): string => route('report.progress.excel', array_filter($this->appliedFilters ?? [])))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+
+            Action::make('exportPdf')
+                ->label('In báo cáo (PDF)')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn (): string => route('report.progress.pdf', array_filter($this->appliedFilters ?? [])))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => ! empty($this->reportRows)),
+        ];
     }
 
     protected function buildReport(): void

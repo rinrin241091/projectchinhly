@@ -4,7 +4,7 @@
 body{background: url('') fixed;}
 
 body {
-    --sidebar-width: 15.5rem !important;
+    --sidebar-width: 17.5rem !important;
 }
 
 .fi-main{
@@ -60,7 +60,7 @@ body {
 /* Sidebar */
 
 :root {
-    --sidebar-width: 15.5rem;
+    --sidebar-width: 17.5rem;
 }
 
 .fi-sidebar-nav {

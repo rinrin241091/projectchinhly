@@ -89,4 +89,24 @@ Route::middleware(['auth'])->group(function () {
         ->name('report.summary.pdf');
     Route::get('/reports/summary/excel', [\App\Http\Controllers\ReportSummaryController::class, 'excel'])
         ->name('report.summary.excel');
+
+    Route::get('/reports/progress/pdf', [\App\Http\Controllers\ReportExportController::class, 'progressPdf'])
+        ->name('report.progress.pdf');
+    Route::get('/reports/progress/excel', [\App\Http\Controllers\ReportExportController::class, 'progressExcel'])
+        ->name('report.progress.excel');
+
+    Route::get('/reports/record-statistics/pdf', [\App\Http\Controllers\ReportExportController::class, 'recordStatisticsPdf'])
+        ->name('report.record-statistics.pdf');
+    Route::get('/reports/record-statistics/excel', [\App\Http\Controllers\ReportExportController::class, 'recordStatisticsExcel'])
+        ->name('report.record-statistics.excel');
+
+    Route::get('/reports/record-document/pdf', [\App\Http\Controllers\ReportExportController::class, 'recordDocumentPdf'])
+        ->name('report.record-document.pdf');
+    Route::get('/reports/record-document/excel', [\App\Http\Controllers\ReportExportController::class, 'recordDocumentExcel'])
+        ->name('report.record-document.excel');
+
+    Route::get('/reports/room-directory/pdf', [\App\Http\Controllers\ReportExportController::class, 'roomDirectoryPdf'])
+        ->name('report.room-directory.pdf');
+    Route::get('/reports/room-directory/excel', [\App\Http\Controllers\ReportExportController::class, 'roomDirectoryExcel'])
+        ->name('report.room-directory.excel');
 });

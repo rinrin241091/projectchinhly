@@ -149,6 +149,7 @@ class ActivityResource extends Resource
     private static function getSubjectTypeLabel(Activity $record): ?string
     {
         return match ($record->subject_type) {
+            \App\Models\User::class => 'Người dùng',
             \App\Models\ArchiveRecord::class => 'Hồ sơ lưu trữ',
             \App\Models\ArchiveRecordItem::class => 'Mục lục hồ sơ',
             \App\Models\Borrowing::class => 'Mượn trả hồ sơ',
@@ -167,6 +168,7 @@ class ActivityResource extends Resource
     private static function getSubjectNoun(Activity $record): ?string
     {
         return match ($record->subject_type) {
+            \App\Models\User::class => 'người dùng',
             \App\Models\ArchiveRecord::class => 'hồ sơ',
             \App\Models\ArchiveRecordItem::class => 'mục lục hồ sơ',
             \App\Models\Borrowing::class => 'mượn trả hồ sơ',

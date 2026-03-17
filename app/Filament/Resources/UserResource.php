@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\Organization;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -179,6 +180,18 @@ class UserResource extends Resource
                     $record->update([
                         'password' => Hash::make($data['password']),
                     ]);
+
+                    activity('Người dùng')
+                        ->performedOn($record)
+                        ->causedBy(auth()->user())
+                        ->withProperties([
+                            'action' => 'change_password',
+                            'target_user_id' => $record->id,
+                            'target_user_name' => $record->name,
+                            'target_user_email' => $record->email,
+                        ])
+                        ->event('updated')
+                        ->log('Admin đã đổi mật khẩu người dùng ' . $record->name);
                 }),
 
             Tables\Actions\Action::make('assignWorkspace')
@@ -207,6 +220,22 @@ class UserResource extends Resource
                             'role' => $data['role']
                         ],
                     ]);
+
+                    $organizationName = Organization::query()->whereKey($data['organization_id'])->value('name');
+
+                    activity('Người dùng')
+                        ->performedOn($record)
+                        ->causedBy(auth()->user())
+                        ->withProperties([
+                            'action' => 'assign_workspace',
+                            'target_user_id' => $record->id,
+                            'target_user_name' => $record->name,
+                            'organization_id' => $data['organization_id'],
+                            'organization_name' => $organizationName,
+                            'workspace_role' => $data['role'],
+                        ])
+                        ->event('updated')
+                        ->log('Admin đã gán phông cho người dùng ' . $record->name);
                 }),
         ]);
 }

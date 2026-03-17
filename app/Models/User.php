@@ -9,10 +9,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -65,6 +67,25 @@ class User extends Authenticatable implements FilamentUser
                 ]);
             }
         });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role', 'active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('Người dùng')
+            ->setDescriptionForEvent(function (string $eventName): string {
+                $userLabel = trim((string) ($this->name ?? $this->email ?? ('#' . $this->id)));
+
+                return match ($eventName) {
+                    'created' => "Admin đã tạo người dùng {$userLabel}",
+                    'updated' => "Admin đã cập nhật người dùng {$userLabel}",
+                    'deleted' => "Admin đã xóa người dùng {$userLabel}",
+                    default => "Admin đã thao tác {$eventName} trên người dùng {$userLabel}",
+                };
+            });
     }
 
     public function getFilamentName(): string

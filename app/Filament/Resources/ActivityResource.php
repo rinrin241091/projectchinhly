@@ -188,32 +188,32 @@ class ActivityResource extends Resource
     {
         $title = trim((string) (
             $record->subject?->title
-            ?? $record->properties?->get('attributes.title')
-            ?? $record->properties?->get('old.title')
+            ?? static::getProperty($record, 'attributes.title')
+            ?? static::getProperty($record, 'old.title')
             ?? ''
         ));
 
         $name = trim((string) (
             $record->subject?->name
-            ?? $record->properties?->get('attributes.name')
-            ?? $record->properties?->get('old.name')
+            ?? static::getProperty($record, 'attributes.name')
+            ?? static::getProperty($record, 'old.name')
             ?? ''
         ));
 
         $description = trim((string) (
             $record->subject?->description
-            ?? $record->properties?->get('attributes.description')
-            ?? $record->properties?->get('old.description')
+            ?? static::getProperty($record, 'attributes.description')
+            ?? static::getProperty($record, 'old.description')
             ?? ''
         ));
 
         $code = trim((string) (
             $record->subject?->code
             ?? $record->subject?->reference_code
-            ?? $record->properties?->get('attributes.code')
-            ?? $record->properties?->get('old.code')
-            ?? $record->properties?->get('attributes.reference_code')
-            ?? $record->properties?->get('old.reference_code')
+            ?? static::getProperty($record, 'attributes.code')
+            ?? static::getProperty($record, 'old.code')
+            ?? static::getProperty($record, 'attributes.reference_code')
+            ?? static::getProperty($record, 'old.reference_code')
             ?? ''
         ));
 
@@ -257,28 +257,28 @@ class ActivityResource extends Resource
 
         foreach ($relatedLogs as $log) {
             $historyTitle = trim((string) (
-                $log->properties?->get('attributes.title')
-                ?? $log->properties?->get('old.title')
+                data_get($log->properties, 'attributes.title')
+                ?? data_get($log->properties, 'old.title')
                 ?? ''
             ));
 
             $historyName = trim((string) (
-                $log->properties?->get('attributes.name')
-                ?? $log->properties?->get('old.name')
+                data_get($log->properties, 'attributes.name')
+                ?? data_get($log->properties, 'old.name')
                 ?? ''
             ));
 
             $historyDescription = trim((string) (
-                $log->properties?->get('attributes.description')
-                ?? $log->properties?->get('old.description')
+                data_get($log->properties, 'attributes.description')
+                ?? data_get($log->properties, 'old.description')
                 ?? ''
             ));
 
             $historyCode = trim((string) (
-                $log->properties?->get('attributes.code')
-                ?? $log->properties?->get('old.code')
-                ?? $log->properties?->get('attributes.reference_code')
-                ?? $log->properties?->get('old.reference_code')
+                data_get($log->properties, 'attributes.code')
+                ?? data_get($log->properties, 'old.code')
+                ?? data_get($log->properties, 'attributes.reference_code')
+                ?? data_get($log->properties, 'old.reference_code')
                 ?? ''
             ));
 
@@ -343,8 +343,8 @@ class ActivityResource extends Resource
     {
         foreach ($keys as $key) {
             $value = trim((string) (
-                $record->properties?->get($key)
-                ?? $record->properties?->get('device.' . $key)
+                static::getProperty($record, $key)
+                ?? static::getProperty($record, 'device.' . $key)
                 ?? ''
             ));
 
@@ -354,5 +354,10 @@ class ActivityResource extends Resource
         }
 
         return null;
+    }
+
+    private static function getProperty(Activity $record, string $path): mixed
+    {
+        return data_get($record->properties, $path);
     }
 }

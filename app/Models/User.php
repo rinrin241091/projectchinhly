@@ -77,7 +77,18 @@ class User extends Authenticatable implements FilamentUser
             ->dontSubmitEmptyLogs()
             ->useLogName('Người dùng')
             ->setDescriptionForEvent(function (string $eventName): string {
-                $userLabel = trim((string) ($this->name ?? $this->email ?? ('#' . $this->id)));
+                $name = trim((string) ($this->name ?? $this->getOriginal('name') ?? ''));
+                $email = trim((string) ($this->email ?? $this->getOriginal('email') ?? ''));
+
+                if ($name !== '' && $email !== '') {
+                    $userLabel = "{$name} ({$email})";
+                } elseif ($name !== '') {
+                    $userLabel = $name;
+                } elseif ($email !== '') {
+                    $userLabel = $email;
+                } else {
+                    $userLabel = '#' . $this->id;
+                }
 
                 return match ($eventName) {
                     'created' => "Admin đã tạo người dùng {$userLabel}",

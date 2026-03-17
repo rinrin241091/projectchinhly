@@ -109,4 +109,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('report.room-directory.pdf');
     Route::get('/reports/room-directory/excel', [\App\Http\Controllers\ReportExportController::class, 'roomDirectoryExcel'])
         ->name('report.room-directory.excel');
+
+    Route::get('/backups/storages/{storage}/download', [\App\Http\Controllers\StorageBackupController::class, 'download'])
+        ->name('storage-backup.download');
 });

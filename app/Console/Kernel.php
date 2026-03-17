@@ -14,6 +14,8 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('borrowings:notify-due-soon')->dailyAt('07:30');
         $schedule->command('borrowings:notify-overdue')->dailyAt('08:00');
+        $schedule->command('backups:run-scheduled')->everyMinute();
+        $schedule->command('disaster-sync:run-scheduled')->everyMinute();
     }
 
     /**

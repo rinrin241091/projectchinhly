@@ -35,9 +35,7 @@ class DocumentListController extends Controller
             'defaultFont' => 'Arial', // Use Arial for Vietnamese character support
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled' => true,
-            'isHtml5ParserEnabled' => true,
             'font_size' => 12, // Set a larger font size
-            'isRemoteEnabled' => true,
         ]);
         
         return $pdf->download("danh-sach-tai-lieu-{$archiveRecord->code}.pdf");

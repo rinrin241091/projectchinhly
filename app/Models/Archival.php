@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Archival extends Model
 {
     use HasFactory;
     protected $fillable = ['identifier', 'name', 'address', 'phone','email','manager'];
-    public function archivals():HasMany
+    public function organizations(): HasMany
     {
-        return $this->hasMany(relate: Organization::class);
+        return $this->hasMany(Organization::class);
     }
 
     public function storages()

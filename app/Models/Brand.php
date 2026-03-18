@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Brand extends Model
@@ -12,7 +13,7 @@ class Brand extends Model
     protected $fillable = [
         'name', 'slug' ,'url' ,'primary_hex' ,'is_visible' ,'description'
     ];
-    public function brands():HasMany
+    public function products(): HasMany
     {
         return $this->hasMany(relate: Product::class);
     }

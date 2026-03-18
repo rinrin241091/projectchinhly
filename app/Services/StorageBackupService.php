@@ -14,7 +14,7 @@ class StorageBackupService
         $storage->load([
             'archival:id,name,code',
             'shelves:id,storage_id,name,code,description,location,created_at,updated_at',
-            'shelves.boxes:id,shelf_id,storage_id,code,description,type,page_count,record_count,status,created_at,updated_at',
+            'shelves.boxes:id,shelf_id,code,description,type,page_count,record_count,status,created_at,updated_at',
         ]);
 
         $archiveRecords = ArchiveRecord::query()

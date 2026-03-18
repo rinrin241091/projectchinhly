@@ -24,12 +24,19 @@ Route::get('/export-archive-records', [\App\Http\Controllers\ArchiveRecordExport
 
 use App\Http\Controllers\ArchiveRecordPrintController;
 use App\Http\Controllers\DocumentListController;
+use App\Http\Controllers\DocumentQrController;
 
 Route::get('/archive-record-items/{id}/print', [ArchiveRecordPrintController::class, 'viewArchivalRecord'])
     ->name('archive-record-items.view');
 
 Route::get('/archive-records/{id}/documents', [DocumentListController::class, 'show'])
     ->name('archive-records.documents');
+
+Route::get('/documents/{document}/qr-info', [DocumentQrController::class, 'show'])
+    ->name('documents.qr-info');
+
+Route::get('/documents/{document}/qr-preview', [DocumentQrController::class, 'preview'])
+    ->name('documents.qr-preview');
 
 /* Route::get('/archive-records/{id}/documents/export-pdf', [DocumentListController::class, 'exportPdf'])
     ->name('archive-records.documents.export-pdf'); */

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 //Log
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -21,10 +20,6 @@ class Box extends Model
     }
     public function archival_records() {
         return $this->belongsToMany(ArchiveRecord::class);
-    }
-    public function storage(): BelongsTo
-    {
-        return $this->belongsTo(Storage::class);
     }
     public function getActivitylogOptions(): LogOptions
     {

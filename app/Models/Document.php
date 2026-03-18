@@ -44,4 +44,34 @@ class Document extends Model
     public function docType(): BelongsTo {
         return $this->belongsTo(\App\Models\DocType::class, 'doc_type_id');
     }
+
+    public function getQrTextPayload(): string
+    {
+        $record = $this->archive_record;
+        $box = $record?->box;
+        $shelf = $box?->shelf;
+
+        $documentName = $this->limitQrText(trim((string) ($this->description ?: $this->document_code ?: $this->document_number ?: ('Tài liệu #' . $this->id))), 80);
+        $documentSymbol = $this->limitQrText(trim((string) ($this->document_code ?: $this->document_symbol ?: $this->document_number ?: '-')), 40);
+        $recordName = $this->limitQrText(trim((string) ($record?->title ?: $record?->code ?: ($record?->reference_code ?: '-'))), 60);
+        $boxName = $this->limitQrText(trim((string) ($box?->description ?: $box?->code ?: '-')), 40);
+        $shelfName = $this->limitQrText(trim((string) ($shelf?->name ?: $shelf?->description ?: $shelf?->code ?: '-')), 40);
+
+        return implode("\n", [
+            '- Tên tài liệu: ' . $documentName,
+            '- Số ký hiệu VB: ' . $documentSymbol,
+            '- Tên hồ sơ: ' . $recordName,
+            '- Tên hộp: ' . $boxName,
+            '- Tên kệ: ' . $shelfName,
+        ]);
+    }
+
+    private function limitQrText(string $value, int $maxLength): string
+    {
+        if (mb_strlen($value) <= $maxLength) {
+            return $value;
+        }
+
+        return rtrim(mb_substr($value, 0, $maxLength - 3)) . '...';
+    }
 }

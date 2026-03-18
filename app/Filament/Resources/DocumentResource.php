@@ -196,6 +196,8 @@ class DocumentResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user) return $query;
+
+                $query->with(['archive_record.box.shelf']);
                 
                 // Admin can see everything - no filtering
                 if ($user->role === 'admin') {
@@ -452,6 +454,7 @@ class DocumentResource extends Resource
                     ->label($black('Mức độ tin cậy')),
                 Tables\Columns\TextColumn::make('physical_condition')
                     ->label($black('Tình trạng vật lý')),
+                static::makeQrColumn(),
             ];
         }
 
@@ -477,10 +480,18 @@ class DocumentResource extends Resource
                 ->label('Tờ số'),
             Tables\Columns\TextColumn::make('note')
                 ->label('Ghi chú'),
+            static::makeQrColumn(),
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Ngày tạo')
                 ->dateTime('d/m/Y H:i'),
         ];
+    }
+
+    private static function makeQrColumn(): Tables\Columns\ViewColumn
+    {
+        return Tables\Columns\ViewColumn::make('qr_code')
+            ->label('QR')
+            ->view('filament.tables.columns.document-qr');
     }
 
     public static function getPages(): array

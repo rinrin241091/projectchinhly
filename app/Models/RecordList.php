@@ -12,7 +12,7 @@ class RecordList extends Model
     use HasFactory;
     protected $fillable = ['list_code', 'name', 'description'];
     public function records() {
-        return $this->belongsToMany(Record::class);
+        return $this->belongsToMany(ArchiveRecord::class);
     }
     
 }

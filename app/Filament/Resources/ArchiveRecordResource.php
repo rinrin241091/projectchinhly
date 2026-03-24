@@ -313,7 +313,7 @@ class ArchiveRecordResource extends Resource
                 'start_date' => 'Ngày hồ sơ bắt đầu (BĐ)',
                 'end_date' => 'Ngày hồ sơ kết thúc (KT)',
                 'preservation_duration' => 'THBQ',
-                'page_count' => 'Số trang',
+                'page_count' => 'Số lượng tờ',
             ];
         }
 
@@ -324,7 +324,7 @@ class ArchiveRecordResource extends Resource
             'start_date' => 'Ngày bắt đầu',
             'end_date' => 'Ngày kết thúc',
             'preservation_duration' => 'Thời hạn bảo quản',
-            'page_count' => 'Số trang',
+            'page_count' => 'Số lượng tờ',
         ];
     }
 
@@ -643,7 +643,7 @@ class ArchiveRecordResource extends Resource
                 Tables\Columns\TextColumn::make('preservation_duration')
                     ->label($black('THBQ')),
                 Tables\Columns\TextColumn::make('page_count')
-                    ->label($black('Số trang')),
+                    ->label($black('Số lượng tờ')),
                 Tables\Columns\TextColumn::make('documents_count')
                     ->counts('documents')
                     ->label($black('Số tài liệu')),

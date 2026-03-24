@@ -53,7 +53,9 @@ class ArchivalResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('identifier')
                                     ->label('Mã cơ quan lưu trữ')
-                                    ->maxLength(20)
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
+                                    ->maxLength(100)
+                                    ->rule('max:100')
                                     ->required(),
                                 Forms\Components\TextInput::make('name')
                                     ->label('Tên cơ quan lưu trữ')

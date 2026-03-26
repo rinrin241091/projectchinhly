@@ -7,6 +7,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use App\Models\Organization;
+use Illuminate\Database\Eloquent\Builder;
 
 class SelectOrganization extends Page
 {
@@ -70,6 +71,7 @@ class SelectOrganization extends Page
                     'Chính quyền' => 'Phông Chính quyền',
                 ])
                 ->live()
+                ->afterStateUpdated(fn (callable $set) => $set('organizationId', null))
                 ->required(),
 
             Select::make('organizationId')
@@ -79,15 +81,21 @@ class SelectOrganization extends Page
                         return [];
                     }
 
+                    $selectedType = (string) $get('type');
+
                     $query = Organization::query()
-                        ->where('type', $get('type'));
+                        ->where(function (Builder $builder) use ($selectedType): void {
+                            $builder
+                                ->where('type', $selectedType)
+                                ->orWhere('type', 'Phông ' . $selectedType);
+                        });
 
                     // nếu user không phải admin, chỉ hiển thị những phông được gán
                     if (auth()->check() && auth()->user()->role !== 'admin') {
                         $query->whereIn('id', auth()->user()->organizations()->pluck('organizations.id'));
                     }
 
-                    return $query->pluck('name', 'id');
+                    return $query->orderBy('name')->pluck('name', 'id');
                 })
                 ->required(),
         ]);

@@ -119,4 +119,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/backups/storages/{storage}/download', [\App\Http\Controllers\StorageBackupController::class, 'download'])
         ->name('storage-backup.download');
+
+    Route::get('/backups/database/download-latest', [\App\Http\Controllers\DatabaseBackupController::class, 'downloadLatest'])
+        ->name('database-backup.download-latest');
+
+    Route::get('/backups/database/download-fresh', [\App\Http\Controllers\DatabaseBackupController::class, 'downloadFresh'])
+        ->name('database-backup.download-fresh');
 });

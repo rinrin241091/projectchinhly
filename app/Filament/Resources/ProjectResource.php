@@ -34,7 +34,7 @@ class ProjectResource extends Resource
 
     public static function canCreate(): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'teamlead'], true);
+        return in_array(auth()->user()?->role, ['super_admin', 'admin'], true);
     }
 
     public static function canEdit(Model $record): bool

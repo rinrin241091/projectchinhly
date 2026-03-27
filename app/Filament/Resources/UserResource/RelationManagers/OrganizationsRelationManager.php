@@ -28,7 +28,7 @@ class OrganizationsRelationManager extends RelationManager
                     ->label('Vai trò trong phông')
                     ->options([
                         'teamlead' => 'Teamlead',
-                        'editor' => 'Người chỉnh sửa',
+                        'editor' => 'Nhập liệu',
                         'viewer' => 'Người xem',
                     ])
                     ->required()
@@ -49,7 +49,7 @@ class OrganizationsRelationManager extends RelationManager
                     ->getStateUsing(fn ($record) => $record->pivot?->role ?? 'viewer')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'teamlead' => 'Teamlead',
-                        'editor' => 'Người chỉnh sửa',
+                        'editor', 'input_data' => 'Nhập liệu',
                         'viewer' => 'Người xem',
                         default => $state,
                     })
@@ -65,7 +65,7 @@ class OrganizationsRelationManager extends RelationManager
                     ->label('Vai trò')
                     ->options([
                         'teamlead' => 'Teamlead',
-                        'editor' => 'Người chỉnh sửa',
+                        'editor' => 'Nhập liệu',
                         'viewer' => 'Người xem',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -90,7 +90,7 @@ class OrganizationsRelationManager extends RelationManager
                             ->label('Vai trò')
                             ->options([
                                 'teamlead' => 'Teamlead',
-                                'editor' => 'Người chỉnh sửa',
+                                'editor' => 'Nhập liệu',
                                 'viewer' => 'Người xem',
                             ])
                             ->required()
@@ -129,7 +129,7 @@ class OrganizationsRelationManager extends RelationManager
                             ->label('Vai trò trong phông')
                             ->options([
                                 'teamlead' => 'Teamlead',
-                                'editor' => 'Người chỉnh sửa',
+                                'editor' => 'Nhập liệu',
                                 'viewer' => 'Người xem',
                             ])
                             ->required(),

@@ -148,7 +148,12 @@ class User extends Authenticatable implements FilamentUser
         $query = $this->organizations()->where('organization_id', $orgId);
 
         if ($role !== null) {
-            $query->wherePivot('role', $role);
+            if (in_array($role, ['editor', 'input_data'], true)) {
+                // Backward compatibility: treat legacy input_data as editor in org scope.
+                $query->wherePivotIn('role', ['editor', 'input_data']);
+            } else {
+                $query->wherePivot('role', $role);
+            }
         }
 
         return $query->exists();

@@ -125,7 +125,7 @@ class UserResource extends Resource
                     return $record->organizations->map(function ($org) {
                         return match ($org->pivot->role) {
                             'teamlead' => 'Teamlead',
-                            'editor' => 'Người chỉnh sửa',
+                            'editor', 'input_data' => 'Nhập liệu',
                             'viewer' => 'Người xem',
                             default => $org->pivot->role,
                         };
@@ -134,7 +134,7 @@ class UserResource extends Resource
                 ->badge()
                 ->color(fn ($state) => match ($state) {
                     'Teamlead' => 'info',
-                    'Người chỉnh sửa' => 'warning',
+                    'Nhập liệu' => 'warning',
                     'Người xem' => 'success',
                     default => 'gray',
                 })
@@ -239,7 +239,7 @@ class UserResource extends Resource
                         ->label('Vai trò')
                         ->options([
                             'teamlead' => 'Teamlead',
-                            'editor' => 'Người chỉnh sửa',
+                            'editor' => 'Nhập liệu',
                             'viewer' => 'Người xem',
                         ])
                         ->required(),

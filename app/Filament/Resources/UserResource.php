@@ -53,39 +53,21 @@ class UserResource extends Resource
                             ->hiddenOn('edit'),
                         Forms\Components\Select::make('role')
                             ->label('Vai trò toàn cục')
-                            ->options(function (): array {
-                                $userRole = auth()->user()?->role;
-                                $hasSuperAdmin = User::query()->where('role', 'super_admin')->exists();
-
-                                if ($userRole === 'super_admin') {
-                                    return [
-                                        'super_admin' => 'Super Admin',
-                                        'admin' => 'Admin',
-                                        'teamlead' => 'Teamlead',
-                                        'user' => 'User',
-                                        'data_entry' => 'Nhân viên nhập liệu',
-                                        'input_data' => 'InputData',
-                                    ];
-                                }
-
-                                if ($userRole === 'admin' && ! $hasSuperAdmin) {
-                                    return [
-                                        'super_admin' => 'Super Admin',
-                                        'admin' => 'Admin',
-                                        'teamlead' => 'Teamlead',
-                                        'user' => 'User',
-                                        'data_entry' => 'Nhân viên nhập liệu',
-                                        'input_data' => 'InputData',
-                                    ];
-                                }
-
-                                return [
+                            ->options(function (?User $record): array {
+                                $options = [
                                     'admin' => 'Admin',
                                     'teamlead' => 'Teamlead',
                                     'user' => 'User',
                                     'data_entry' => 'Nhân viên nhập liệu',
                                     'input_data' => 'InputData',
                                 ];
+
+                                // Keep existing super_admin records editable without allowing new assignment from form.
+                                if ($record?->role === 'super_admin') {
+                                    return ['super_admin' => 'Super Admin'] + $options;
+                                }
+
+                                return $options;
                             })
                             ->required()
                             ->default('user')

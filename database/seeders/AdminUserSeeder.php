@@ -49,6 +49,17 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
+        // Tạo hoặc cập nhật super admin (chỉ tạo qua seeder)
+        User::updateOrCreate(
+            ['email' => 'admin@bpo.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('ITdept!@#2021'),
+                'role' => 'super_admin',
+                'active' => true,
+            ]
+        );
+
         // Tạo hoặc cập nhật admin user
         $admin = User::updateOrCreate(
             ['email' => 'admin@example.com'],

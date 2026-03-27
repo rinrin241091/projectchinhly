@@ -5,13 +5,13 @@ namespace App\Exports;
 use App\Models\Organization;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class ArchiveRecordsExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class ArchiveRecordsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
 {
     use Exportable;
 
@@ -24,12 +24,11 @@ class ArchiveRecordsExport implements FromCollection, WithHeadings, WithMapping,
         $this->organization = $organization;
     }
 
-    public function collection()
+    public function query()
     {
         return (clone $this->query)
             ->with(['box', 'archiveRecordItem'])
-            ->withCount('documents')
-            ->get();
+            ->withCount('documents');
     }
 
     public function headings(): array

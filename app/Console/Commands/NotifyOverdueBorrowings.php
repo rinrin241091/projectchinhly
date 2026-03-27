@@ -6,6 +6,7 @@ use App\Models\Borrowing;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class NotifyOverdueBorrowings extends Command
 {
@@ -43,6 +44,15 @@ class NotifyOverdueBorrowings extends Command
 
         $notifiedManagers = 0;
 
+        // Pre-load managers grouped by organization (fewer queries than per-borrowing lookup)
+        $managersCache = [];
+        foreach ($overdueBorrowings->pluck('archiveRecord.organization_id')->unique()->filter() as $orgId) {
+            $managersCache[$orgId] = User::query()
+                ->whereIn('role', ['admin', 'teamlead'])
+                ->whereIn('id', DB::table('organization_user')->where('organization_id', $orgId)->select('user_id'))
+                ->get();
+        }
+
         foreach ($overdueBorrowings as $borrowing) {
             $organizationId = $borrowing->archiveRecord?->organization_id;
 
@@ -64,14 +74,7 @@ class NotifyOverdueBorrowings extends Command
                 continue;
             }
 
-            $managers = User::query()
-                ->where(function ($query) {
-                    $query
-                        ->where('role', 'admin')
-                        ->orWhere('role', 'teamlead');
-                })
-                ->whereHas('organizations', fn ($query) => $query->where('organizations.id', $organizationId))
-                ->get();
+            $managers = $managersCache[$organizationId] ?? collect();
 
             if ($managers->isEmpty()) {
                 continue;

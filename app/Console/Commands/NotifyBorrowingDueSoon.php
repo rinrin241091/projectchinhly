@@ -6,6 +6,7 @@ use App\Models\Borrowing;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class NotifyBorrowingDueSoon extends Command
 {
@@ -43,6 +44,15 @@ class NotifyBorrowingDueSoon extends Command
             return self::SUCCESS;
         }
 
+        // Pre-load managers grouped by organization (single query instead of N queries)
+        $managersCache = [];
+        foreach ($dueSoonBorrowings->pluck('archiveRecord.organization_id')->unique()->filter() as $orgId) {
+            $managersCache[$orgId] = User::query()
+                ->whereIn('role', ['admin', 'teamlead'])
+                ->whereIn('id', DB::table('organization_user')->where('organization_id', $orgId)->select('user_id'))
+                ->get();
+        }
+
         foreach ($dueSoonBorrowings as $borrowing) {
             $recordTitle = $borrowing->archiveRecord?->title ?? ('#' . $borrowing->archive_record_id);
             $dueDateText = optional($borrowing->due_at)?->format('d/m/Y') ?? $targetDate;
@@ -60,12 +70,7 @@ class NotifyBorrowingDueSoon extends Command
                 continue;
             }
 
-            $managers = User::query()
-                ->where(function ($query) {
-                    $query->where('role', 'admin')->orWhere('role', 'teamlead');
-                })
-                ->whereHas('organizations', fn ($query) => $query->where('organizations.id', $organizationId))
-                ->get();
+            $managers = $managersCache[$organizationId] ?? collect();
 
             if ($managers->isEmpty()) {
                 continue;
@@ -80,8 +85,8 @@ class NotifyBorrowingDueSoon extends Command
             $borrowing->update([
                 'due_soon_notified_at' => now(),
             ]);
-        }
 
+        }
         $this->info('Due-soon notifications sent successfully.');
 
         return self::SUCCESS;

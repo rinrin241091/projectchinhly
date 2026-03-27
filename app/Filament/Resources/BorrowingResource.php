@@ -48,11 +48,11 @@ class BorrowingResource extends Resource
     private static function isHandlingTeamMember(int $userId, int $organizationId): bool
     {
         return Project::query()
-            ->whereHas('organizations', fn (Builder $query) => $query->where('organizations.id', $organizationId))
+            ->whereIn('id', \DB::table('project_organization')->where('organization_id', $organizationId)->select('project_id'))
             ->where(function (Builder $query) use ($userId) {
                 $query
                     ->where('team_lead_id', $userId)
-                    ->orWhereHas('members', fn (Builder $memberQuery) => $memberQuery->where('users.id', $userId));
+                    ->orWhereIn('id', \DB::table('project_user')->where('user_id', $userId)->select('project_id'));
             })
             ->exists();
     }
@@ -302,11 +302,7 @@ class BorrowingResource extends Resource
                 Tables\Columns\TextColumn::make('archiveRecord.reference_code')
                     ->label('Mã hồ sơ')
                     ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('archiveRecord', function (Builder $recordQuery) use ($search) {
-                            $recordQuery
-                                ->where('reference_code', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%");
-                        });
+                        return $query->whereIn('archive_record_id', ArchiveRecord::where('reference_code', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%")->select('id')->toBase());
                     })
                     ->sortable(),
 
@@ -455,7 +451,7 @@ class BorrowingResource extends Resource
                         $value = $data['value'] ?? null;
 
                         return $query->when($value, function (Builder $q) use ($value) {
-                            $q->whereHas('archiveRecord', fn (Builder $recordQuery) => $recordQuery->where('organization_id', $value));
+                            $q->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $value)->select('id')->toBase());
                         });
                     }),
             ])

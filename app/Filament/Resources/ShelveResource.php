@@ -67,9 +67,7 @@ class ShelveResource extends Resource
                     // Get the archival from organization
                     $archival = \App\Models\Organization::find($orgId)?->archival;
                     if ($archival) {
-                        $query->whereHas('storage', function ($q) use ($archival) {
-                            $q->where('archival_id', $archival->id);
-                        });
+                        $query->whereIn('storage_id', \App\Models\Storage::where('archival_id', $archival->id)->select('id')->toBase());
                     } else {
                         return $query->whereRaw('1 = 0');
                     }

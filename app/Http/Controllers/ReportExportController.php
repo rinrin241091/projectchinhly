@@ -16,11 +16,14 @@ use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReportExportController extends Controller
 {
+    protected ?array $resolvedOrganizationIds = null;
+
     public function progressPdf(Request $request)
     {
         $data = $this->buildProgressData($request);
@@ -95,21 +98,29 @@ class ReportExportController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $rows = match ($mode) {
-            'month' => $this->buildProgressByMonth($dateFrom, $dateTo),
-            'organization' => $this->buildProgressByOrganization($dateFrom, $dateTo),
-            'user' => $this->buildProgressByUser($dateFrom, $dateTo),
-            default => $this->buildProgressByDay($dateFrom, $dateTo),
-        };
+        $cacheKey = $this->reportCacheKey('progress', [
+            'mode' => $mode,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ]);
 
-        return [
-            'rows' => $rows->values(),
-            'modeLabel' => $this->getProgressModeLabel($mode),
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'totalRecords' => (int) $rows->sum('records_count'),
-            'totalDocuments' => (int) $rows->sum('documents_count'),
-        ];
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($mode, $dateFrom, $dateTo) {
+            $rows = match ($mode) {
+                'month' => $this->buildProgressByMonth($dateFrom, $dateTo),
+                'organization' => $this->buildProgressByOrganization($dateFrom, $dateTo),
+                'user' => $this->buildProgressByUser($dateFrom, $dateTo),
+                default => $this->buildProgressByDay($dateFrom, $dateTo),
+            };
+
+            return [
+                'rows' => $rows->values(),
+                'modeLabel' => $this->getProgressModeLabel($mode),
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'totalRecords' => (int) $rows->sum('records_count'),
+                'totalDocuments' => (int) $rows->sum('documents_count'),
+            ];
+        });
     }
 
     protected function buildProgressByDay(?string $dateFrom, ?string $dateTo): Collection
@@ -166,7 +177,11 @@ class ReportExportController extends Controller
             ->groupBy('bucket')
             ->get();
 
-        $orgNames = Organization::query()->pluck('name', 'id');
+        // Only fetch orgs that exist in the data (prevent loading all orgs)
+        $orgIds = $recordRows->pluck('bucket')->merge($documentRows->pluck('bucket'))->unique()->toArray();
+        $orgNames = Organization::query()
+            ->whereIn('id', $orgIds)
+            ->pluck('name', 'id');
 
         return $this->mergeBuckets(
             $recordRows,
@@ -205,7 +220,12 @@ class ReportExportController extends Controller
         }
 
         $rows = $query->get();
-        $userNames = User::query()->pluck('name', 'id');
+        
+        // Only load users that have activity (prevent loading all users)
+        $userIds = $rows->pluck('bucket')->unique()->toArray();
+        $userNames = User::query()
+            ->whereIn('id', $userIds)
+            ->pluck('name', 'id');
 
         return $rows->map(function ($row) use ($userNames): array {
             return [
@@ -219,19 +239,22 @@ class ReportExportController extends Controller
     protected function buildRecordStatisticsData(Request $request): array
     {
         $mode = (string) $request->input('mode', 'year');
+        $cacheKey = $this->reportCacheKey('record_statistics', ['mode' => $mode]);
 
-        $rows = match ($mode) {
-            'item' => $this->buildRecordStatisticsByItem(),
-            'preservation_duration' => $this->buildRecordStatisticsByPreservationDuration(),
-            'condition' => $this->buildRecordStatisticsByCondition(),
-            default => $this->buildRecordStatisticsByYear(),
-        };
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($mode) {
+            $rows = match ($mode) {
+                'item' => $this->buildRecordStatisticsByItem(),
+                'preservation_duration' => $this->buildRecordStatisticsByPreservationDuration(),
+                'condition' => $this->buildRecordStatisticsByCondition(),
+                default => $this->buildRecordStatisticsByYear(),
+            };
 
-        return [
-            'rows' => $rows->values(),
-            'modeLabel' => $this->getRecordStatisticsModeLabel($mode),
-            'totalRecords' => (int) $rows->sum('records_count'),
-        ];
+            return [
+                'rows' => $rows->values(),
+                'modeLabel' => $this->getRecordStatisticsModeLabel($mode),
+                'totalRecords' => (int) $rows->sum('records_count'),
+            ];
+        });
     }
 
     protected function buildRecordStatisticsByYear(): Collection
@@ -255,7 +278,11 @@ class ReportExportController extends Controller
             ->orderBy('bucket')
             ->get();
 
-        $itemNames = ArchiveRecordItem::query()->pluck('title', 'id');
+        // Only load items that have records (prevent loading all items)
+        $itemIds = $rows->pluck('bucket')->filter()->unique()->toArray();
+        $itemNames = $itemIds ? ArchiveRecordItem::query()
+            ->whereIn('id', $itemIds)
+            ->pluck('title', 'id') : collect();
 
         return $rows->map(fn ($row): array => [
             'label' => (string) ($itemNames[(int) $row->bucket] ?? 'Chưa phân mục lục'),
@@ -291,18 +318,33 @@ class ReportExportController extends Controller
 
     protected function buildRecordDocumentData(): array
     {
-        $rows = $this->buildRecordDocumentRows();
+        $cacheKey = $this->reportCacheKey('record_document', []);
 
-        return [
-            'rows' => $rows,
-            'totalRecords' => $rows->count(),
-            'totalDocuments' => (int) $rows->sum('documents_count'),
-            'totalPages' => (int) $rows->sum('document_pages'),
-        ];
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
+            $rows = $this->buildRecordDocumentRows();
+
+            return [
+                'rows' => $rows,
+                'totalRecords' => $rows->count(),
+                'totalDocuments' => (int) $rows->sum('documents_count'),
+                'totalPages' => (int) $rows->sum('document_pages'),
+            ];
+        });
     }
 
     protected function buildRecordDocumentRows(): Collection
     {
+        $user = auth()->user();
+        
+        // Cache org IDs to avoid repeated querying
+        $organizationIds = $user->role === 'admin' 
+            ? null 
+            : $user->organizations()->pluck('organizations.id')->toArray();
+
+        if ($organizationIds !== null && empty($organizationIds)) {
+            return collect();
+        }
+
         $query = ArchiveRecord::query()
             ->leftJoin('documents', 'documents.archive_record_id', '=', 'archive_records.id')
             ->selectRaw(
@@ -323,15 +365,7 @@ class ReportExportController extends Controller
             )
             ->orderBy('archive_records.id');
 
-        $user = auth()->user();
-
-        if ($user->role !== 'admin') {
-            $organizationIds = $user->organizations()->pluck('organizations.id');
-
-            if ($organizationIds->isEmpty()) {
-                return collect();
-            }
-
+        if ($organizationIds !== null) {
             $query->whereIn('archive_records.organization_id', $organizationIds);
         }
 
@@ -352,54 +386,56 @@ class ReportExportController extends Controller
 
     protected function buildRoomDirectoryData(): array
     {
-        $rows = Storage::query()
-            ->leftJoin('archive_records', 'archive_records.storage_id', '=', 'storages.id')
-            ->selectRaw('
-                storages.id,
-                storages.name,
-                COUNT(archive_records.id) as records_count,
-                MIN(YEAR(archive_records.start_date)) as year_min,
-                MAX(COALESCE(YEAR(archive_records.end_date), YEAR(archive_records.start_date))) as year_max
-            ')
-            ->groupBy('storages.id', 'storages.name')
-            ->orderBy('storages.name')
-            ->get()
-            ->map(function ($row): array {
-                $yearMin = $row->year_min;
-                $yearMax = $row->year_max;
+        $cacheKey = $this->reportCacheKey('room_directory', []);
 
-                if ($yearMin && $yearMax) {
-                    $timeRange = ($yearMin === $yearMax) ? (string) $yearMin : "{$yearMin}-{$yearMax}";
-                } else {
-                    $timeRange = '-';
-                }
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () {
+            $rows = Storage::query()
+                ->leftJoin('archive_records', 'archive_records.storage_id', '=', 'storages.id')
+                ->selectRaw('
+                    storages.id,
+                    storages.name,
+                    COUNT(archive_records.id) as records_count,
+                    MIN(YEAR(archive_records.start_date)) as year_min,
+                    MAX(COALESCE(YEAR(archive_records.end_date), YEAR(archive_records.start_date))) as year_max
+                ')
+                ->groupBy('storages.id', 'storages.name')
+                ->orderBy('storages.name')
+                ->get()
+                ->map(function ($row): array {
+                    $yearMin = $row->year_min;
+                    $yearMax = $row->year_max;
 
-                return [
-                    'id' => $row->id,
-                    'name' => $row->name,
-                    'records_count' => (int) $row->records_count,
-                    'time_range' => $timeRange,
-                ];
-            });
+                    if ($yearMin && $yearMax) {
+                        $timeRange = ($yearMin === $yearMax) ? (string) $yearMin : "{$yearMin}-{$yearMax}";
+                    } else {
+                        $timeRange = '-';
+                    }
 
-        return [
-            'rows' => $rows,
-            'totalRooms' => $rows->count(),
-            'totalRecords' => (int) $rows->sum('records_count'),
-        ];
+                    return [
+                        'id' => $row->id,
+                        'name' => $row->name,
+                        'records_count' => (int) $row->records_count,
+                        'time_range' => $timeRange,
+                    ];
+                });
+
+            return [
+                'rows' => $rows,
+                'totalRooms' => $rows->count(),
+                'totalRecords' => (int) $rows->sum('records_count'),
+            ];
+        });
     }
 
     protected function baseArchiveRecordQuery(?string $dateFrom, ?string $dateTo): Builder
     {
         $query = ArchiveRecord::query();
-        $user = auth()->user();
+        $organizationIds = $this->resolveScopedOrganizationIds();
 
-        if ($user->role !== 'admin') {
-            $organizationIds = $user->organizations()->pluck('organizations.id');
-            if ($organizationIds->isEmpty()) {
+        if ($organizationIds !== null) {
+            if (empty($organizationIds)) {
                 return $query->whereRaw('1 = 0');
             }
-
             $query->whereIn('organization_id', $organizationIds);
         }
 
@@ -417,14 +453,12 @@ class ReportExportController extends Controller
     protected function baseDocumentQuery(?string $dateFrom, ?string $dateTo)
     {
         $query = Document::query()->join('archive_records', 'archive_records.id', '=', 'documents.archive_record_id');
-        $user = auth()->user();
+        $organizationIds = $this->resolveScopedOrganizationIds();
 
-        if ($user->role !== 'admin') {
-            $organizationIds = $user->organizations()->pluck('organizations.id');
-            if ($organizationIds->isEmpty()) {
+        if ($organizationIds !== null) {
+            if (empty($organizationIds)) {
                 return $query->whereRaw('1 = 0');
             }
-
             $query->whereIn('archive_records.organization_id', $organizationIds);
         }
 
@@ -442,15 +476,12 @@ class ReportExportController extends Controller
     protected function baseRecordStatisticsQuery(): Builder
     {
         $query = ArchiveRecord::query();
-        $user = auth()->user();
+        $organizationIds = $this->resolveScopedOrganizationIds();
 
-        if ($user->role !== 'admin') {
-            $organizationIds = $user->organizations()->pluck('organizations.id');
-
-            if ($organizationIds->isEmpty()) {
+        if ($organizationIds !== null) {
+            if (empty($organizationIds)) {
                 return $query->whereRaw('1 = 0');
             }
-
             $query->whereIn('organization_id', $organizationIds);
         }
 
@@ -508,5 +539,40 @@ class ReportExportController extends Controller
             'condition' => 'Hồ sơ theo trạng thái',
             default => 'Hồ sơ theo năm',
         };
+    }
+
+    protected function reportCacheKey(string $reportType, array $params): string
+    {
+        $user = auth()->user();
+        $scope = $this->resolveScopedOrganizationIds();
+
+        return 'report_export:' . $reportType . ':' . md5(json_encode([
+            'user_id' => $user?->id,
+            'role' => $user?->role,
+            'scope' => $scope,
+            'params' => $params,
+        ]));
+    }
+
+    protected function resolveScopedOrganizationIds(): ?array
+    {
+        if ($this->resolvedOrganizationIds !== null) {
+            return $this->resolvedOrganizationIds;
+        }
+
+        $user = auth()->user();
+
+        if (! $user || $user->role === 'admin') {
+            $this->resolvedOrganizationIds = null;
+
+            return $this->resolvedOrganizationIds;
+        }
+
+        $this->resolvedOrganizationIds = $user->organizations()
+            ->pluck('organizations.id')
+            ->map(fn ($id) => (int) $id)
+            ->toArray();
+
+        return $this->resolvedOrganizationIds;
     }
 }

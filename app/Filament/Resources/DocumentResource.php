@@ -211,9 +211,7 @@ class DocumentResource extends Resource
                         return $query->whereRaw('1 = 0'); // Show nothing
                     }
                     // Filter to selected organization
-                    $query->whereHas('archive_record', function ($q) use ($orgId) {
-                        $q->where('organization_id', $orgId);
-                    });
+                    $query->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $orgId)->select('id')->toBase());
                     // Also filter by selected archive record if applicable
                     if ($recordId = session('selected_archive_record_id')) {
                         $query->where('archive_record_id', $recordId);

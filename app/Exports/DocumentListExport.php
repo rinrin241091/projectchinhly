@@ -4,12 +4,12 @@ namespace App\Exports;
 
 use App\Models\ArchiveRecord;
 use Carbon\Carbon;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class DocumentListExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class DocumentListExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
 {
     protected $archiveRecord;
     protected int $rowNumber = 0;
@@ -19,9 +19,9 @@ class DocumentListExport implements FromCollection, WithHeadings, WithMapping, S
         $this->archiveRecord = $archiveRecord;
     }
 
-    public function collection()
+    public function query()
     {
-        return $this->archiveRecord->documents()->with('docType')->get();
+        return $this->archiveRecord->documents()->select('documents.id', 'documents.document_number', 'documents.doc_key', 'documents.issued_date', 'documents.issuing_organization', 'documents.language', 'documents.description', 'documents.note', 'documents.doc_type_id', 'documents.archive_record_id')->with(['docType:id,name']);
     }
 
     public function headings(): array

@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\ArchiveRecordItem;
 use Illuminate\Http\Request;
 use NumberFormatter;
+use Inertia\Inertia;
 
 class ArchiveRecordPrintController extends Controller
 {
     public function viewArchivalRecord($id)
     {
-        $archiveRecordItem = ArchiveRecordItem::with('organization.archival', 'records', 'records.box')->findOrFail($id);
+        $archiveRecordItem = ArchiveRecordItem::select('id', 'archive_record_item_code', 'title', 'organization_id')
+            ->with([
+                'organization' => fn($q) => $q->select('id', 'name', 'code', 'type'),
+                'organization.archival' => fn($q) => $q->select('id', 'name'),
+                'records' => fn($q) => $q->select('id', 'archive_record_item_id', 'box_id', 'code', 'reference_code', 'title', 'start_date', 'end_date', 'preservation_duration', 'page_count', 'note')->with('box:id,code'),
+            ])
+            ->findOrFail($id);
 
         // Sắp xếp danh sách hồ sơ
         $records = $archiveRecordItem->records->sortBy([
@@ -36,9 +43,32 @@ class ArchiveRecordPrintController extends Controller
         $recordCountInWords = $formatter->format($records->count());
         $boxCountInWords = $formatter->format($boxCount);
 
-        return view('archive_record', [
-            'archiveRecordItem' => $archiveRecordItem,
-            'records' => $records,
+        return Inertia::render('ArchiveRecord', [
+            'archiveRecordItem' => [
+                'id' => $archiveRecordItem->id,
+                'archive_record_item_code' => $archiveRecordItem->archive_record_item_code,
+                'title' => $archiveRecordItem->title,
+                'description' => $archiveRecordItem->description,
+                'document_date' => $archiveRecordItem->document_date,
+                'page_num' => $archiveRecordItem->page_num,
+                'organization' => [
+                    'name' => $archiveRecordItem->organization?->name,
+                    'code' => $archiveRecordItem->organization?->code,
+                    'archival_name' => $archiveRecordItem->organization?->archival?->name,
+                ],
+            ],
+            'records' => $records->map(fn ($record) => [
+                'id' => $record->id,
+                'box_code' => $record->box?->code,
+                'code' => $record->code,
+                'title' => $record->title,
+                'start_date' => $record->start_date,
+                'end_date' => $record->end_date,
+                'preservation_duration' => $record->preservation_duration,
+                'condition' => $record->condition,
+                'page_count' => $record->page_count,
+                'note' => $record->note,
+            ])->values()->all(),
             'pageCount' => $pageCount,
             'fromBox' => $fromBox,
             'toBox' => $toBox,
@@ -47,6 +77,7 @@ class ArchiveRecordPrintController extends Controller
             'boxCount' => $boxCount,
             'recordCountInWords' => ucfirst($recordCountInWords),
             'boxCountInWords' => ucfirst($boxCountInWords),
+            'updatePageNumUrl' => route('archive-record-items.update-page-num', ['id' => $archiveRecordItem->id]),
         ]);
     }
 

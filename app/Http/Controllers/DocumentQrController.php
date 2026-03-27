@@ -3,20 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
-use Illuminate\Contracts\View\View;
+use Inertia\Inertia;
 
 class DocumentQrController extends Controller
 {
-    public function preview(Document $document): View
+    public function preview(Document $document)
     {
-        return view('documents.qr-preview', [
-            'document' => $document,
+        return Inertia::render('Documents/QrPreview', [
+            'document' => [
+                'id' => $document->id,
+            ],
             'qrText' => $document->load('archive_record.box.shelf')->getQrTextPayload(),
             'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=' . rawurlencode($document->getQrTextPayload()),
         ]);
     }
 
-    public function show(Document $document): View
+    public function show(Document $document)
     {
         $document->load([
             'archive_record.box.shelf',
@@ -26,8 +28,10 @@ class DocumentQrController extends Controller
         $box = $record?->box;
         $shelf = $box?->shelf;
 
-        return view('documents.qr-info', [
-            'document' => $document,
+        return Inertia::render('Documents/QrInfo', [
+            'document' => [
+                'id' => $document->id,
+            ],
             'documentName' => trim((string) ($document->description ?: $document->document_code ?: $document->document_number ?: ('Tài liệu #' . $document->id))),
             'recordName' => trim((string) ($record?->title ?: $record?->code ?: ($record?->reference_code ?: '-'))),
             'boxName' => trim((string) ($box?->description ?: $box?->code ?: '-')),

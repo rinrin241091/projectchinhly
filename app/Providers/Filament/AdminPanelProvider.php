@@ -67,7 +67,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->databaseNotifications()
-            ->databaseNotificationsPolling('5s')
+            ->databaseNotificationsPolling('20s')
             ->darkmode(condition:false)
             ->sidebarWidth('17.5rem')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
@@ -149,6 +149,67 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 'panels::body.end',
+                fn (): string => '<style>
+                    .fi-main.is-nav-loading {
+                        position: relative;
+                    }
+
+                    .fi-main.is-nav-loading::after {
+                        content: "";
+                        position: absolute;
+                        inset: 0;
+                        background: rgba(255, 255, 255, 0.62);
+                        backdrop-filter: blur(1px);
+                        z-index: 20;
+                        pointer-events: none;
+                    }
+
+                    .fi-main.is-nav-loading::before {
+                        content: "";
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 3px;
+                        background: linear-gradient(90deg, #f59e0b, #f97316);
+                        z-index: 21;
+                        animation: fi-nav-progress 900ms linear infinite;
+                    }
+
+                    @keyframes fi-nav-progress {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                </style>
+                <script>
+                    (() => {
+                        if (window.__docmanagerNavLoaderBound) {
+                            return;
+                        }
+
+                        window.__docmanagerNavLoaderBound = true;
+
+                        const toggleLoading = (active) => {
+                            const main = document.querySelector(".fi-main");
+
+                            if (!main) {
+                                return;
+                            }
+
+                            if (active) {
+                                main.classList.add("is-nav-loading");
+                            } else {
+                                main.classList.remove("is-nav-loading");
+                            }
+                        };
+
+                        document.addEventListener("livewire:navigating", () => toggleLoading(true));
+                        document.addEventListener("livewire:navigated", () => toggleLoading(false));
+                    })();
+                </script>',
+            )
+            ->renderHook(
+                'panels::body.end',
                 fn (): string => auth()->user()?->role === 'admin'
                     ? '<script>
                         (() => {
@@ -178,7 +239,17 @@ class AdminPanelProvider extends PanelProvider
                                     }
 
                                     if (currentPendingCount !== lastPendingCount) {
-                                        window.location.reload();
+                                        const livewireNavigate = window.Livewire?.navigate;
+
+                                        if (typeof livewireNavigate === "function") {
+                                            livewireNavigate(window.location.href, { replace: true });
+                                        } else {
+                                            window.dispatchEvent(new CustomEvent("borrowings:pending-count-changed", {
+                                                detail: { count: currentPendingCount },
+                                            }));
+                                        }
+
+                                        lastPendingCount = currentPendingCount;
                                     }
                                 } catch (error) {
                                     // no-op

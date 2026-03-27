@@ -1,15 +1,36 @@
 @php
     $archivalId = session('selected_archival_id');
-    $archival = $archivalId ? \App\Models\Organization::find($archivalId) : null;
     $user = auth()->user();
+
+    $archival = $archivalId
+        ? \Illuminate\Support\Facades\Cache::remember(
+            'topbar:org:selected:' . $archivalId,
+            now()->addMinutes(5),
+            fn () => \App\Models\Organization::query()->select('id', 'name')->find($archivalId)
+        )
+        : null;
     
     // Lấy danh sách phông mà user có quyền truy cập
     if ($user->role === 'admin') {
         // Admin có thể thấy tất cả phông
-        $availableOrganizations = \App\Models\Organization::all();
+        $availableOrganizations = \Illuminate\Support\Facades\Cache::remember(
+            'topbar:org:list:admin',
+            now()->addMinutes(5),
+            fn () => \App\Models\Organization::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+        );
     } else {
         // Non-admin chỉ thấy những phông được gán
-        $availableOrganizations = $user->organizations;
+        $availableOrganizations = \Illuminate\Support\Facades\Cache::remember(
+            'topbar:org:list:user:' . $user->id,
+            now()->addMinutes(2),
+            fn () => $user->organizations()
+                ->select('organizations.id', 'organizations.name')
+                ->orderBy('organizations.name')
+                ->get()
+        );
     }
 @endphp
 
@@ -41,7 +62,7 @@
         {{-- Chỉ ADMIN mới được nút Chọn lại phông --}}
         @if($user->role === 'admin')
             <button
-                onclick="window.location='{{ route('filament.dashboard.pages.select-organization') }}'"
+                onclick="if (window.Livewire && typeof window.Livewire.navigate === 'function') { window.Livewire.navigate('{{ route('filament.dashboard.pages.select-organization') }}'); } else { window.location.assign('{{ route('filament.dashboard.pages.select-organization') }}'); }"
                 class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
             >
                 Chọn lại phông
@@ -54,12 +75,13 @@
 <script>
 function changeOrganization(organizationId) {
     if (organizationId) {
-        // Gửi AJAX request để cập nhật session và reload trang
+        // Cập nhật session rồi điều hướng mềm để tránh full reload toàn trang.
         fetch('{{ route('change-organization') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify({
                 organization_id: organizationId
@@ -68,7 +90,14 @@ function changeOrganization(organizationId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.reload();
+                const currentUrl = window.location.pathname + window.location.search;
+
+                if (window.Livewire && typeof window.Livewire.navigate === 'function') {
+                    window.Livewire.navigate(currentUrl);
+                    return;
+                }
+
+                window.location.assign(currentUrl);
             } else {
                 alert(data.message || 'Lỗi khi chuyển phông');
             }

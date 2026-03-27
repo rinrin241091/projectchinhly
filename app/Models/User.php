@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -48,26 +47,6 @@ class User extends Authenticatable implements FilamentUser
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
-
-    protected static function booted(): void
-    {
-        static::saving(function (self $user): void {
-            if ($user->role !== 'admin') {
-                return;
-            }
-
-            $hasOtherAdmin = static::query()
-                ->where('role', 'admin')
-                ->when($user->exists, fn ($query) => $query->whereKeyNot($user->getKey()))
-                ->exists();
-
-            if ($hasOtherAdmin) {
-                throw ValidationException::withMessages([
-                    'role' => 'Hệ thống chỉ cho phép một tài khoản Admin toàn cục.',
-                ]);
-            }
-        });
-    }
 
     public function getActivitylogOptions(): LogOptions
     {

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return Inertia::render('Welcome');
 });
 
 Route::get('/print-box-labels', [\App\Http\Controllers\BoxLabelPrintController::class, 'print'])->name('print.box.labels');
@@ -92,6 +93,11 @@ Route::get('/dashboard/borrowings/pending-count-check', function () {
 
 // Report export routes
 Route::middleware(['auth'])->group(function () {
+    Route::get('/app/archive-record-items', [\App\Http\Controllers\App\ArchiveRecordItemPageController::class, 'index'])
+        ->name('app.archive-record-items.index');
+
+    Route::get('/reports/summary', [\App\Http\Controllers\ReportSummaryController::class, 'index'])
+        ->name('report.summary.index');
     Route::get('/reports/summary/pdf', [\App\Http\Controllers\ReportSummaryController::class, 'pdf'])
         ->name('report.summary.pdf');
     Route::get('/reports/summary/excel', [\App\Http\Controllers\ReportSummaryController::class, 'excel'])

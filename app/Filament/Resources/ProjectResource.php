@@ -34,7 +34,7 @@ class ProjectResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->role === 'admin';
+        return in_array(auth()->user()?->role, ['admin', 'teamlead'], true);
     }
 
     public static function canEdit(Model $record): bool
@@ -60,7 +60,20 @@ class ProjectResource extends Resource
     {
         return $form->schema([
             Forms\Components\Section::make('Thông tin dự án')
-                ->disabled(fn () => auth()->user()?->role !== 'admin')
+                ->disabled(function (?Project $record): bool {
+                    $user = auth()->user();
+
+                    if (! $user) {
+                        return true;
+                    }
+
+                    if ($user->role === 'admin') {
+                        return false;
+                    }
+
+                    // Teamlead can fill the form when creating, but cannot edit existing project info.
+                    return $record !== null;
+                })
                 ->schema([
                     Forms\Components\TextInput::make('code')
                         ->label('Mã dự án')

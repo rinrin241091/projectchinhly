@@ -62,9 +62,7 @@ class BoxResource extends Resource
                             return [];
                         }
 
-                        return \App\Models\Shelf::whereHas('storage', function ($q) use ($archivalId) {
-                            $q->where('archival_id', $archivalId);
-                        })->pluck('description', 'id');
+                        return \App\Models\Shelf::whereIn('storage_id', \App\Models\Storage::where('archival_id', $archivalId)->select('id')->toBase())->pluck('description', 'id');
                     }
 
                     // 🔸 Nếu đã biết kho, chỉ lấy các kệ trong kho đó
@@ -98,9 +96,19 @@ class BoxResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->paginated([25, 50, 100])
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user) return $query;
+                
+                // Eager load relationships để tránh N+1 query
+                $query->with([
+                    'shelf:id,storage_id,description',
+                    'shelf.storage:id,archival_id,name',
+                    'shelf.storage.archival:id,name'
+                ]);
                 
                 // Admin can see everything - no filtering
                 if ($user->role === 'admin') {
@@ -115,9 +123,7 @@ class BoxResource extends Resource
                     // Get the archival from organization
                     $archival = \App\Models\Organization::find($orgId)?->archival;
                     if ($archival) {
-                        $query->whereHas('shelf.storage', function ($q) use ($archival) {
-                            $q->where('archival_id', $archival->id);
-                        });
+                        $query->whereIn('shelf_id', \App\Models\Shelf::whereIn('storage_id', \App\Models\Storage::where('archival_id', $archival->id)->select('id')->toBase())->select('id')->toBase());
                     } else {
                         return $query->whereRaw('1 = 0');
                     }
@@ -140,28 +146,33 @@ class BoxResource extends Resource
                 Tables\Columns\TextColumn::make(name:'type')
                     ->searchable()
                     ->sortable()
-                    ->label('Loại'), 
+                    ->label('Loại')
+                    ->toggleable(isToggledHiddenByDefault: true), 
                 
                 Tables\Columns\TextColumn::make(name:'shelf.description')
                     ->searchable()
                     ->sortable()
+                    ->label('Kệ')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make(name:'shelf.storage.name')
                     ->searchable()
                     ->sortable()
+                    ->label('Kho')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make(name:'shelf.storage.archival.name')
                     ->label('Đơn vị lưu trữ')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make(name:'record_count')
                     ->sortable()
                     ->label('Số lượng hồ sơ')
-                    ->default(0), 
+                    ->default(0)
+                    ->toggleable(isToggledHiddenByDefault: true), 
                 Tables\Columns\TextColumn::make(name:'page_count')
                     ->sortable()
                     ->label('Số lượng trang')
-                    ->default(0),
+                    ->default(0)
+                    ->toggleable(isToggledHiddenByDefault: true),
             
             ])
             ->filters([

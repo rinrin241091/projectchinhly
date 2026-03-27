@@ -210,7 +210,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 'panels::body.end',
-                fn (): string => auth()->user()?->role === 'admin'
+                fn (): string => in_array(auth()->user()?->role, ['super_admin', 'admin'], true)
                     ? '<script>
                         (() => {
                             const endpoint = "' . route('borrowings.pending-count') . '";

@@ -53,7 +53,7 @@ class DatabaseBackupController extends Controller
 
     private function ensureAdmin(): void
     {
-        if (! auth()->check() || auth()->user()->role !== 'admin') {
+        if (! auth()->check() || auth()->user()->role !== 'super_admin') {
             abort(Response::HTTP_FORBIDDEN);
         }
     }

@@ -22,7 +22,7 @@ class MembersRelationManager extends RelationManager
             return false;
         }
 
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
 
@@ -79,11 +79,11 @@ class MembersRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\DetachAction::make()
                     ->label('Xóa member')
-                    ->visible(fn () => auth()->user()?->role === 'admin'),
+                    ->visible(fn () => in_array(auth()->user()?->role, ['super_admin', 'admin'], true)),
             ])
             ->bulkActions([
                 Tables\Actions\DetachBulkAction::make()
-                    ->visible(fn () => auth()->user()?->role === 'admin'),
+                    ->visible(fn () => in_array(auth()->user()?->role, ['super_admin', 'admin'], true)),
             ]);
     }
 }

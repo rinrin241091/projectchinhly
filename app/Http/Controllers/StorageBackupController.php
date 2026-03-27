@@ -12,7 +12,7 @@ class StorageBackupController extends Controller
     {
         $user = auth()->user();
 
-        abort_unless($user && $user->role === 'admin', 403);
+        abort_unless($user && $user->role === 'super_admin', 403);
 
         $payload = $backupService->buildPayload($storage, $user);
         $fileName = $backupService->makeFileName($storage);

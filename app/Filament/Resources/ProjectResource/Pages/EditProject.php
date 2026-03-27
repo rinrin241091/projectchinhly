@@ -12,7 +12,7 @@ class EditProject extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        if (auth()->user()?->role !== 'admin') {
+        if (! in_array(auth()->user()?->role, ['super_admin', 'admin'], true)) {
             return [];
         }
 
@@ -23,7 +23,7 @@ class EditProject extends EditRecord
 
     protected function getFormActions(): array
     {
-        if (auth()->user()?->role !== 'admin') {
+        if (! in_array(auth()->user()?->role, ['super_admin', 'admin'], true)) {
             return [
                 Actions\Action::make('back')
                     ->label('Quay lại')

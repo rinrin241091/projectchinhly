@@ -19,10 +19,10 @@ class SelectOrganization extends Page
     public ?string $type = null;
     public ?int $organizationId = null; // chosen organization id
 
-    //chỉ admin mới có quyền truy cập trang này để chọn phông, người dùng bình thường sẽ được gán phông mặc định và không cần chọn lại
+    // Chỉ super_admin/admin mới có quyền truy cập trang này để chọn phông.
     public static function canAccess(): bool
     {
-        return auth()->user()?->role === 'admin';
+        return in_array(auth()->user()?->role, ['super_admin', 'admin'], true);
     }
 
     public function mount(): void
@@ -90,8 +90,8 @@ class SelectOrganization extends Page
                                 ->orWhere('type', 'Phông ' . $selectedType);
                         });
 
-                    // nếu user không phải admin, chỉ hiển thị những phông được gán
-                    if (auth()->check() && auth()->user()->role !== 'admin') {
+                    // Nếu user không phải super_admin/admin, chỉ hiển thị những phông được gán.
+                    if (auth()->check() && ! in_array(auth()->user()->role, ['super_admin', 'admin'], true)) {
                         $query->whereIn('id', auth()->user()->organizations()->pluck('organizations.id'));
                     }
 

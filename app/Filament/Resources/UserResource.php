@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 
@@ -51,16 +53,51 @@ class UserResource extends Resource
                             ->hiddenOn('edit'),
                         Forms\Components\Select::make('role')
                             ->label('Vai trò toàn cục')
-                            ->options([
-                                'admin' => 'Admin',
-                                'teamlead' => 'Teamlead',
-                                'user' => 'User',
-                                'data_entry' => 'Nhân viên nhập liệu',
-                                'input_data' => 'InputData',
-                            ])
+                            ->options(function (): array {
+                                $userRole = auth()->user()?->role;
+                                $hasSuperAdmin = User::query()->where('role', 'super_admin')->exists();
+
+                                if ($userRole === 'super_admin') {
+                                    return [
+                                        'super_admin' => 'Super Admin',
+                                        'admin' => 'Admin',
+                                        'teamlead' => 'Teamlead',
+                                        'user' => 'User',
+                                        'data_entry' => 'Nhân viên nhập liệu',
+                                        'input_data' => 'InputData',
+                                    ];
+                                }
+
+                                if ($userRole === 'admin' && ! $hasSuperAdmin) {
+                                    return [
+                                        'super_admin' => 'Super Admin',
+                                        'admin' => 'Admin',
+                                        'teamlead' => 'Teamlead',
+                                        'user' => 'User',
+                                        'data_entry' => 'Nhân viên nhập liệu',
+                                        'input_data' => 'InputData',
+                                    ];
+                                }
+
+                                return [
+                                    'admin' => 'Admin',
+                                    'teamlead' => 'Teamlead',
+                                    'user' => 'User',
+                                    'data_entry' => 'Nhân viên nhập liệu',
+                                    'input_data' => 'InputData',
+                                ];
+                            })
                             ->required()
                             ->default('user')
                             ->helperText('Quyền cấp cao nhất của người dùng trong hệ thống'),
+                        Forms\Components\Select::make('managedProjects')
+                            ->label('Dự án phụ trách')
+                            ->relationship('managedProjects', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                            ->helperText('Gán ngay user vào một hoặc nhiều dự án để tiện phân công.'),
                         Forms\Components\Toggle::make('active')
                             ->label('Kích hoạt')
                             ->helperText('Bật/tắt kích hoạt người dùng')
@@ -125,6 +162,7 @@ class UserResource extends Resource
                 ->label('Vai trò toàn cục')
                 ->badge()
                 ->formatStateUsing(fn ($state) => match ($state) {
+                    'super_admin' => 'Super Admin',
                     'admin' => 'Admin',
                     'teamlead' => 'Teamlead',
                     'user' => 'User',
@@ -133,6 +171,7 @@ class UserResource extends Resource
                     default => $state,
                 })
                 ->color(fn ($state) => match ($state) {
+                    'super_admin' => 'primary',
                     'admin' => 'danger',
                     'teamlead' => 'info',
                     'user' => 'success',
@@ -150,14 +189,23 @@ class UserResource extends Resource
                 ->sortable(),
         ])
 
-        ->modifyQueryUsing(fn (Builder $query) =>
+        ->modifyQueryUsing(function (Builder $query): Builder {
             $query->with('organizations')
-                  ->where('id', '!=', auth()->id() ?? 0)
-        )
+                ->where('id', '!=', auth()->id() ?? 0);
+
+            // Admin thường không được nhìn thấy tài khoản Super Admin.
+            if (auth()->user()?->role === 'admin') {
+                $query->where('role', '!=', 'super_admin');
+            }
+
+            return $query;
+        })
 
         ->actions([
-            Tables\Actions\EditAction::make(),
-            Tables\Actions\DeleteAction::make(),
+            Tables\Actions\EditAction::make()
+                ->visible(fn (User $record): bool => auth()->user()?->role === 'super_admin' || $record->role !== 'super_admin'),
+            Tables\Actions\DeleteAction::make()
+                ->visible(fn (User $record): bool => auth()->user()?->role === 'super_admin' || $record->role !== 'super_admin'),
 
             Tables\Actions\Action::make('changePassword')
                 ->label('Đổi mật khẩu')
@@ -266,6 +314,29 @@ class UserResource extends Resource
     
     public static function canViewAny(): bool
     {
-        return auth()->check() && (auth()->user()->role === 'admin');
+        return auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin'], true);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin'], true);
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        if (! auth()->check()) {
+            return false;
+        }
+
+        if (auth()->user()->role === 'super_admin') {
+            return true;
+        }
+
+        return $record->role !== 'super_admin';
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canEdit($record);
     }
 }

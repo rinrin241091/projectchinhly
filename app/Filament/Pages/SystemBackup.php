@@ -44,12 +44,12 @@ class SystemBackup extends Page implements HasForms
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->check() && auth()->user()->role === 'admin';
+        return auth()->check() && auth()->user()->role === 'super_admin';
     }
 
     public static function canAccess(): bool
     {
-        return auth()->check() && auth()->user()->role === 'admin';
+        return auth()->check() && auth()->user()->role === 'super_admin';
     }
 
     public function form(Form $form): Form

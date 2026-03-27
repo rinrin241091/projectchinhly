@@ -29,12 +29,12 @@ class ProjectResource extends Resource
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public static function canCreate(): bool
     {
-        return in_array(auth()->user()?->role, ['admin', 'teamlead'], true);
+        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public static function canEdit(Model $record): bool
@@ -44,8 +44,13 @@ class ProjectResource extends Resource
             return false;
         }
 
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
+        }
+
+        // If an admin account exists, teamlead should not access project edit.
+        if (User::query()->where('role', 'admin')->exists()) {
+            return false;
         }
 
         return $user->role === 'teamlead' && (int) $record->team_lead_id === (int) $user->id;
@@ -53,7 +58,7 @@ class ProjectResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->role === 'admin';
+        return in_array(auth()->user()?->role, ['super_admin', 'admin'], true);
     }
 
     public static function form(Form $form): Form
@@ -67,7 +72,7 @@ class ProjectResource extends Resource
                         return true;
                     }
 
-                    if ($user->role === 'admin') {
+                    if (in_array($user->role, ['super_admin', 'admin'], true)) {
                         return false;
                     }
 
@@ -151,7 +156,7 @@ class ProjectResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                if ($user->role === 'admin') {
+                if (in_array($user->role, ['super_admin', 'admin'], true)) {
                     return $query->with(['teamLead', 'organizations']);
                 }
 
@@ -159,9 +164,8 @@ class ProjectResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                return $query
-                    ->with(['teamLead', 'organizations'])
-                    ->where('team_lead_id', $user->id);
+                // Teamlead can view all projects (shared visibility across teams).
+                return $query->with(['teamLead', 'organizations']);
             })
             ->columns([
                 Tables\Columns\TextColumn::make('code')
@@ -212,7 +216,7 @@ class ProjectResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->role === 'admin'),
+                    ->visible(fn () => in_array(auth()->user()?->role, ['super_admin', 'admin'], true)),
                 Tables\Actions\Action::make('manageMembers')
                     ->label('Thành viên')
                     ->icon('heroicon-o-user-group')
@@ -232,7 +236,7 @@ class ProjectResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->role === 'admin'),
+                        ->visible(fn () => in_array(auth()->user()?->role, ['super_admin', 'admin'], true)),
                 ]),
             ]);
     }

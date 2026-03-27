@@ -47,7 +47,7 @@ trait RoleBasedPermissions
         }
 
         // global admin bypasses everything
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
 
@@ -69,7 +69,7 @@ trait RoleBasedPermissions
         if (static::isDataEntryRole($user)) {
             return in_array(static::class, static::dataEntryWritableResources(), true);
         }
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         $orgId = session('selected_archival_id');
@@ -89,7 +89,7 @@ trait RoleBasedPermissions
         if (static::isDataEntryRole($user)) {
             return in_array(static::class, static::dataEntryWritableResources(), true);
         }
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         $orgId = session('selected_archival_id');
@@ -108,7 +108,7 @@ trait RoleBasedPermissions
         if (static::isDataEntryRole($user)) {
             return false;
         }
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         $orgId = session('selected_archival_id');
@@ -134,7 +134,7 @@ trait RoleBasedPermissions
         }
         
         // Global admin can always import
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         
@@ -163,7 +163,7 @@ trait RoleBasedPermissions
         }
         
         // Global admin can always export
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         
@@ -192,7 +192,7 @@ trait RoleBasedPermissions
         }
         
         // Global admin can always manage members
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         
@@ -221,7 +221,7 @@ trait RoleBasedPermissions
         }
         
         // Global admin can always create storage units
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         

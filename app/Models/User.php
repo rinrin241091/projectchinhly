@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -47,6 +48,32 @@ class User extends Authenticatable implements FilamentUser
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            if (! in_array($user->role, ['super_admin', 'admin'], true)) {
+                return;
+            }
+
+            $hasOtherSameRole = static::query()
+                ->where('role', $user->role)
+                ->when($user->exists, fn ($query) => $query->whereKeyNot($user->getKey()))
+                ->exists();
+
+            if (! $hasOtherSameRole) {
+                return;
+            }
+
+            $message = $user->role === 'super_admin'
+                ? 'Hệ thống chỉ cho phép một tài khoản Super Admin.'
+                : 'Hệ thống chỉ cho phép một tài khoản Admin.';
+
+            throw ValidationException::withMessages([
+                'role' => $message,
+            ]);
+        });
+    }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -114,7 +141,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function hasOrganization(int $orgId, ?string $role = null): bool
     {
-        if ($this->role === 'admin') {
+        if (in_array($this->role, ['super_admin', 'admin'], true)) {
             return true;
         }
 

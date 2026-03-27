@@ -37,7 +37,7 @@ class ReportSummary extends Page
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public function mount(): void
@@ -112,7 +112,7 @@ class ReportSummary extends Page
 
         $query = Organization::query();
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $query->whereIn('id', $user->organizations()->pluck('organizations.id'));
         } else {
             $archivalId = session('archival_id');
@@ -133,7 +133,7 @@ class ReportSummary extends Page
 
         $orgQuery = Organization::query();
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $orgQuery->whereIn('id', $user->organizations()->pluck('organizations.id'));
         } else {
             $archivalId = session('archival_id');

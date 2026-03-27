@@ -42,7 +42,7 @@ class ProgressReport extends Page
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public function mount(): void
@@ -210,7 +210,7 @@ class ProgressReport extends Page
             ->groupBy('bucket')
             ->orderBy('bucket');
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $query->where('causer_id', $user->id);
         }
 
@@ -258,7 +258,7 @@ class ProgressReport extends Page
         $query = ArchiveRecord::query();
         $user = auth()->user();
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $organizationIds = $user->organizations()->pluck('organizations.id');
             if ($organizationIds->isEmpty()) {
                 return $query->whereRaw('1 = 0');
@@ -285,7 +285,7 @@ class ProgressReport extends Page
         $query = Document::query()->join('archive_records', 'archive_records.id', '=', 'documents.archive_record_id');
         $user = auth()->user();
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $organizationIds = $user->organizations()->pluck('organizations.id');
             if ($organizationIds->isEmpty()) {
                 return $query->whereRaw('1 = 0');

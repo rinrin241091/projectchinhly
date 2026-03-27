@@ -33,7 +33,7 @@ class RecordDocumentReport extends Page
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public function mount(): void
@@ -91,7 +91,7 @@ class RecordDocumentReport extends Page
 
         $user = auth()->user();
 
-        if ($user->role !== 'admin') {
+        if (! in_array($user->role, ['super_admin', 'admin'], true)) {
             $organizationIds = $user->organizations()->pluck('organizations.id');
 
             if ($organizationIds->isEmpty()) {

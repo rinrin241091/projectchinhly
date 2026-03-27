@@ -31,7 +31,7 @@ class RoomDirectoryReport extends Page
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public function mount(): void

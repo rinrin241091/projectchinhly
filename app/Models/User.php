@@ -134,7 +134,15 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Cache of organizations for this request (memoization).
+     * Prevents querying the DB multiple times per request.
+     */
+    private ?array $organizationIds = null;
+    private ?array $organizationRoles = null;
+
+    /**
      * Determine whether the user is associated with the given organization.
+     * Uses memoization to avoid repeated DB queries in the same request.
      *
      * @param  int  $orgId
      * @param  string|null  $role   optional pivot role to check for
@@ -145,17 +153,31 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        $query = $this->organizations()->where('organization_id', $orgId);
+        // Load organizations once and cache in memory for this request
+        if ($this->organizationIds === null) {
+            $this->organizationIds = [];
+            $this->organizationRoles = [];
 
-        if ($role !== null) {
-            if (in_array($role, ['editor', 'input_data'], true)) {
-                // Backward compatibility: treat legacy input_data as editor in org scope.
-                $query->wherePivotIn('role', ['editor', 'input_data']);
-            } else {
-                $query->wherePivot('role', $role);
+            foreach ($this->organizations as $org) {
+                $this->organizationIds[] = (int) $org->id;
+                $this->organizationRoles[(int) $org->id] = (array) ($org->pivot?->role ? [$org->pivot->role] : []);
             }
         }
 
-        return $query->exists();
+        // Check if organization exists in memoized list
+        if (!in_array($orgId, $this->organizationIds, true)) {
+            return false;
+        }
+
+        // If specific role required, verify it
+        if ($role !== null) {
+            $userRole = $this->organizationRoles[$orgId] ?? [];
+            if (in_array($role, ['editor', 'input_data'], true)) {
+                return count(array_intersect($userRole, ['editor', 'input_data'])) > 0;
+            }
+            return in_array($role, $userRole, true);
+        }
+
+        return true;
     }
 }

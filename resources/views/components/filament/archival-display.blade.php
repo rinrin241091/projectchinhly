@@ -62,7 +62,7 @@
         {{-- Chỉ ADMIN mới được nút Chọn lại phông --}}
         @if($user->role === 'admin')
             <button
-                onclick="if (window.Livewire && typeof window.Livewire.navigate === 'function') { window.Livewire.navigate('{{ route('filament.dashboard.pages.select-organization') }}'); } else { window.location.assign('{{ route('filament.dashboard.pages.select-organization') }}'); }"
+                onclick="if (window.Livewire && typeof window.Livewire.navigate === 'function') { window.Livewire.navigate('{{ route('filament.dashboard.pages.select-organization') }}'); } else { alert('Không thể điều hướng mềm ở phiên này. Vui lòng mở lại trang quản trị.'); }"
                 class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
             >
                 Chọn lại phông
@@ -97,7 +97,7 @@ function changeOrganization(organizationId) {
                     return;
                 }
 
-                window.location.assign(currentUrl);
+                alert('Không thể điều hướng mềm ở phiên này. Vui lòng mở lại trang quản trị.');
             } else {
                 alert(data.message || 'Lỗi khi chuyển phông');
             }

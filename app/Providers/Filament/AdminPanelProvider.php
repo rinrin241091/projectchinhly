@@ -217,6 +217,10 @@ class AdminPanelProvider extends PanelProvider
                             let lastPendingCount = null;
 
                             const checkPendingCount = async () => {
+                                if (document.hidden) {
+                                    return;
+                                }
+
                                 try {
                                     const response = await fetch(endpoint, {
                                         method: "GET",
@@ -257,7 +261,7 @@ class AdminPanelProvider extends PanelProvider
                             };
 
                             checkPendingCount();
-                            setInterval(checkPendingCount, 5000);
+                            setInterval(checkPendingCount, 15000);
                         })();
                     </script>'
                     : '',

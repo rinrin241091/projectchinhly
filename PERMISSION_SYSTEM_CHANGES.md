@@ -8,12 +8,12 @@ This document describes the comprehensive permission system overhaul implemented
 ### Global User Roles
 - **admin**: System administrator with full access to everything
 - **user**: Regular user (default role)
-- **input_data**: Data input specialist role
+- **data_entry**: Data input specialist role
 
 ### Organization-Level Roles (per organization/phông)
 When a user is assigned to an organization, they get one of these roles:
 - **admin**: Organization administrator - full control over data and member management
-- **editor**: Organization editor - can create/edit/delete data, but cannot manage members
+- **data_entry**: Nhân viên nhập liệu - can create/edit/delete data, but cannot manage members
 - **viewer**: Organization viewer - read-only access, cannot create/edit/delete/import/export
 
 ## Changes Made
@@ -26,8 +26,8 @@ Added four new static methods for granular permission checks:
 #### `canImport(): bool`
 - Returns `true` for:
   - Global admin users
-  - Users with `admin` or `editor` role in the selected organization
-  - Users with `input_data` global role
+  - Users with `admin` or Nhân viên nhập liệu (`data_entry`) role in the selected organization
+  - Users with `data_entry` global role
 - Returns `false` for:
   - Viewers (cannot import)
   - Users without organization access
@@ -35,8 +35,8 @@ Added four new static methods for granular permission checks:
 #### `canExport(): bool`
 - Returns `true` for:
   - Global admin users
-  - Users with `admin` or `editor` role in the selected organization
-  - Users with `input_data` global role
+  - Users with `admin` or Nhân viên nhập liệu (`data_entry`) role in the selected organization
+  - Users with `data_entry` global role
 - Returns `false` for:
   - Viewers (cannot export)
   - Users without organization access
@@ -46,7 +46,7 @@ Added four new static methods for granular permission checks:
   - Global admin users
   - Users with `admin` role in the selected organization
 - Returns `false` for:
-  - Editors (cannot add/edit/delete members)
+  - Nhân viên nhập liệu (cannot add/edit/delete members)
   - Viewers (cannot manage members)
 
 #### `canCreateStorage(): bool`
@@ -54,7 +54,7 @@ Added four new static methods for granular permission checks:
   - Global admin users
   - Users with `admin` role in the selected organization
 - Returns `false` for:
-  - Editors (cannot create storage units)
+  - Nhân viên nhập liệu (cannot create storage units)
   - Viewers (cannot create storage units)
 
 ### 2. DocumentResource
@@ -62,7 +62,7 @@ Added four new static methods for granular permission checks:
 
 #### Changes:
 - **Import Action**: Added `->visible(fn() => static::canImport())`
-  - Only admins and editors can see the import button
+  - Only admins and data-entry staff can see the import button
   - Viewers cannot import documents
   
 - **Create Action**: Added `->visible(fn() => static::canCreate())`
@@ -88,10 +88,10 @@ Added four new static methods for granular permission checks:
 
 #### Changes:
 - **Create Action**: Added `->visible(fn () => ... && static::canCreate())`
-  - Only admins and editors can create archive records
+  - Only admins and data-entry staff can create archive records
   
 - **Export Action**: Added `->visible(fn () => ... && static::canExport())`
-  - Only admins and editors can export to Excel
+  - Only admins and data-entry staff can export to Excel
   - Viewers cannot export
   
 - **Edit/Delete Actions**: Added visibility checks
@@ -106,7 +106,7 @@ Added four new static methods for granular permission checks:
 - Added `RoleBasedPermissions` trait
 - **Create Action**: Added `->visible(fn() => static::canCreateStorage())`
   - Only organization admins can create storage units
-  - Editors and viewers cannot create storage
+  - Data-entry staff and viewers cannot create storage
   
 - **Edit Action**: Added `->visible(fn() => static::canEdit(null))`
 - **Bulk Delete Action**: Added `->visible(fn() => static::canDelete(null))`
@@ -143,7 +143,7 @@ Updated the following resources with permission checks for consistency:
 
 ## Permission Matrix
 
-| Action | Viewer | Editor | Admin (Org) | Admin (Global) |
+| Action | Viewer | Nhân viên nhập liệu (data_entry) | Admin (Org) | Admin (Global) |
 |--------|--------|--------|------------|---------|
 | View Records | ✅ | ✅ | ✅ | ✅ |
 | Create Records | ❌ | ✅ | ✅ | ✅ |
@@ -166,7 +166,7 @@ Updated the following resources with permission checks for consistency:
 - Cannot create or modify storage infrastructure
 - **Read-only** access mode
 
-### For Editors (Người chỉnh sửa)
+### For Data Entry Staff (Nhân viên nhập liệu)
 - Can **create, edit, delete** documents and archive records
 - Can **import** documents from CSV files
 - Can **export** archive records to Excel
@@ -208,7 +208,7 @@ Test the following scenarios:
    - Verify create/edit/delete buttons are hidden
    - Verify member management is hidden
 
-2. **Editor user**:
+2. **Data-entry user**:
    - Verify import/export buttons are visible and functional
    - Verify create/edit/delete are visible and functional
    - Verify member management is hidden
@@ -240,5 +240,5 @@ app/Filament/Resources/ShelveResource.php
 
 - All permission checks are non-blocking for global admins
 - Permission checks leverage existing `hasOrganization()` method on User model
-- The system maintains backward compatibility with the existing `input_data` role
+- Global role naming has been normalized to `data_entry`
 - Multiple visibility check patterns ensure defense-in-depth approach to security

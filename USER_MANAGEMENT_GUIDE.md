@@ -32,8 +32,8 @@ php artisan db:seed
   - `admin`: Quyền cao nhất
   - `user`: Quyền hạn chế
 - Bảng pivot `organization_user` dùng để gán người dùng với từng "phông" (phòng làm
-  việc). Mỗi record có thêm cột `role` (`admin`, `editor`, `viewer`) chỉ rõ vai trò
-  của người dùng trong phông đó – nghĩa là một user có thể là "Người chỉnh sửa" ở
+  việc). Mỗi record có thêm cột `role` (`admin`, `data_entry` = Nhân viên nhập liệu, `viewer`) chỉ rõ vai trò
+  của người dùng trong phông đó – nghĩa là một user có thể là "Nhân viên nhập liệu" ở
   Phông A nhưng chỉ là "Người xem" ở Phông B.
 
 ### UI phân quyền

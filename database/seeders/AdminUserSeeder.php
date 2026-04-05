@@ -87,7 +87,7 @@ class AdminUserSeeder extends Seeder
         );
         // Gán user vào các phòng với các vai trò khác nhau để demo layout
         $user->organizations()->syncWithoutDetaching([
-            $orgA->id => ['role' => 'editor'],
+            $orgA->id => ['role' => 'data_entry'],
             $orgB->id => ['role' => 'viewer'],
         ]);
 
@@ -102,7 +102,7 @@ class AdminUserSeeder extends Seeder
         );
         $user2->organizations()->syncWithoutDetaching([
             $orgB->id => ['role' => 'viewer'],
-            $orgC->id => ['role' => 'editor'],
+            $orgC->id => ['role' => 'data_entry'],
         ]);
     }
 }

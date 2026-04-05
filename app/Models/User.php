@@ -172,8 +172,8 @@ class User extends Authenticatable implements FilamentUser
         // If specific role required, verify it
         if ($role !== null) {
             $userRole = $this->organizationRoles[$orgId] ?? [];
-            if (in_array($role, ['editor', 'input_data'], true)) {
-                return count(array_intersect($userRole, ['editor', 'input_data'])) > 0;
+            if ($role === 'data_entry') {
+                return in_array('data_entry', $userRole, true);
             }
             return in_array($role, $userRole, true);
         }

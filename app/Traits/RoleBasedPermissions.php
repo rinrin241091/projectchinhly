@@ -17,7 +17,7 @@ trait RoleBasedPermissions
 
     protected static function isDataEntryRole($user): bool
     {
-        return $user && in_array($user->role, ['data_entry', 'input_data'], true);
+        return $user && $user->role === 'data_entry';
     }
 
     protected static function dataEntryViewableResources(): array
@@ -74,8 +74,8 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // teamleads and editors within the org can create
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            // teamleads and data-entry staff within the org can create
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         return false;
     }
@@ -94,7 +94,7 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         return false;
     }
@@ -113,14 +113,14 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         return false;
     }
 
     /**
      * Check if user can perform import action
-     * Only admins and editors can import (not viewers)
+    * Only admins and data-entry staff can import (not viewers)
      */
     public static function canImport(): bool
     {
@@ -140,8 +140,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only teamleads and editors within the org can import (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            // Only teamleads and data-entry staff within the org can import (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         
         return false;
@@ -149,7 +149,7 @@ trait RoleBasedPermissions
 
     /**
      * Check if user can perform export action
-     * Only admins and editors can export (not viewers)
+    * Only admins and data-entry staff can export (not viewers)
      */
     public static function canExport(): bool
     {
@@ -169,8 +169,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only teamleads and editors within the org can export (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            // Only teamleads and data-entry staff within the org can export (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         
         return false;
@@ -198,7 +198,7 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only org teamleads can manage members (not editors or viewers)
+            // Only org teamleads can manage members (not data-entry staff or viewers)
             return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'admin']);
         }
         
@@ -227,8 +227,8 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only org teamleads and editors can create storage (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'editor']);
+            // Only org teamleads and data-entry staff can create storage (not viewers)
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
         
         return false;

@@ -28,7 +28,7 @@ class OrganizationsRelationManager extends RelationManager
                     ->label('Vai trò trong phông')
                     ->options([
                         'teamlead' => 'Teamlead',
-                        'editor' => 'Nhập liệu',
+                        'data_entry' => 'Nhân viên nhập liệu',
                         'viewer' => 'Người xem',
                     ])
                     ->required()
@@ -49,13 +49,13 @@ class OrganizationsRelationManager extends RelationManager
                     ->getStateUsing(fn ($record) => $record->pivot?->role ?? 'viewer')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'teamlead' => 'Teamlead',
-                        'editor', 'input_data' => 'Nhập liệu',
+                        'data_entry' => 'Nhân viên nhập liệu',
                         'viewer' => 'Người xem',
                         default => $state,
                     })
                     ->colors([
                         'info' => 'teamlead',
-                        'warning' => 'editor',
+                        'warning' => 'data_entry',
                         'success' => 'viewer',
                     ]),
             ])
@@ -65,7 +65,7 @@ class OrganizationsRelationManager extends RelationManager
                     ->label('Vai trò')
                     ->options([
                         'teamlead' => 'Teamlead',
-                        'editor' => 'Nhập liệu',
+                        'data_entry' => 'Nhân viên nhập liệu',
                         'viewer' => 'Người xem',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -90,7 +90,7 @@ class OrganizationsRelationManager extends RelationManager
                             ->label('Vai trò')
                             ->options([
                                 'teamlead' => 'Teamlead',
-                                'editor' => 'Nhập liệu',
+                                'data_entry' => 'Nhân viên nhập liệu',
                                 'viewer' => 'Người xem',
                             ])
                             ->required()
@@ -129,7 +129,7 @@ class OrganizationsRelationManager extends RelationManager
                             ->label('Vai trò trong phông')
                             ->options([
                                 'teamlead' => 'Teamlead',
-                                'editor' => 'Nhập liệu',
+                                'data_entry' => 'Nhân viên nhập liệu',
                                 'viewer' => 'Người xem',
                             ])
                             ->required(),

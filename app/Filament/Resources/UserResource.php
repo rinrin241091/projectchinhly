@@ -59,7 +59,6 @@ class UserResource extends Resource
                                     'teamlead' => 'Teamlead',
                                     'user' => 'User',
                                     'data_entry' => 'Nhân viên nhập liệu',
-                                    'input_data' => 'InputData',
                                 ];
 
                                 // Keep existing super_admin records editable without allowing new assignment from form.
@@ -125,7 +124,7 @@ class UserResource extends Resource
                     return $record->organizations->map(function ($org) {
                         return match ($org->pivot->role) {
                             'teamlead' => 'Teamlead',
-                            'editor', 'input_data' => 'Nhập liệu',
+                            'data_entry' => 'Nhân viên nhập liệu',
                             'viewer' => 'Người xem',
                             default => $org->pivot->role,
                         };
@@ -134,7 +133,7 @@ class UserResource extends Resource
                 ->badge()
                 ->color(fn ($state) => match ($state) {
                     'Teamlead' => 'info',
-                    'Nhập liệu' => 'warning',
+                    'Nhân viên nhập liệu' => 'warning',
                     'Người xem' => 'success',
                     default => 'gray',
                 })
@@ -149,7 +148,6 @@ class UserResource extends Resource
                     'teamlead' => 'Teamlead',
                     'user' => 'User',
                     'data_entry' => 'Nhân viên nhập liệu',
-                    'input_data' => 'Nhập dữ liệu',
                     default => $state,
                 })
                 ->color(fn ($state) => match ($state) {
@@ -158,7 +156,6 @@ class UserResource extends Resource
                     'teamlead' => 'info',
                     'user' => 'success',
                     'data_entry' => 'warning',
-                    'input_data' => 'warning',
                     default => 'gray',
                 })
                 ->sortable(),
@@ -239,7 +236,7 @@ class UserResource extends Resource
                         ->label('Vai trò')
                         ->options([
                             'teamlead' => 'Teamlead',
-                            'editor' => 'Nhập liệu',
+                            'data_entry' => 'Nhân viên nhập liệu',
                             'viewer' => 'Người xem',
                         ])
                         ->required(),
@@ -286,7 +283,7 @@ class UserResource extends Resource
         ];
 
         // Restrict access to certain pages for limited global roles
-        if (auth()->check() && in_array(auth()->user()->role, ['input_data', 'data_entry'], true)) {
+        if (auth()->check() && auth()->user()->role === 'data_entry') {
             // Example: Remove access to specific pages
             // unset($pages['manage-users']);
         }

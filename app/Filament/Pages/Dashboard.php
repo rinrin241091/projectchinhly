@@ -11,6 +11,6 @@ class Dashboard extends BaseDashboard
 
     public static function shouldRegisterNavigation(): bool
     {
-        return ! in_array(auth()->user()?->role, ['data_entry', 'input_data'], true);
+        return auth()->user()?->role !== 'data_entry';
     }
 }

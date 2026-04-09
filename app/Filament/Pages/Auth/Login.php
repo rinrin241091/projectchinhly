@@ -111,8 +111,7 @@ class Login extends \Filament\Pages\Auth\Login
 
     protected function getPasswordFormComponent(): Component
     {
-        return parent::getPasswordFormComponent()
-            ->revealable();
+        return parent::getPasswordFormComponent();
     }
 
     protected function getCaptchaFormComponent(): TextInput

@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Validation\Rules\Unique;
 
 class OrganizationResource extends Resource
 {
@@ -51,14 +52,28 @@ class OrganizationResource extends Resource
                     ->schema([
                         Forms\Components\Section::make()
                             ->schema([
-                                Forms\Components\TextInput::make('code')->required(),
-                                Forms\Components\TextInput::make('name')->required(),
+                                Forms\Components\TextInput::make('code')
+                                    ->label('Code')
+                                    ->validationAttribute('code phông')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
+                                    ->live(onBlur: true)
+                                    ->unique(
+                                        table: Organization::class,
+                                        column: 'code',
+                                        ignoreRecord: true,
+                                    )
+                                    ->required(),
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Name')
+                                    ->validationAttribute('tên phông')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
+                                    ->required(),
                                 Forms\Components\Select::make('archival_id')
                                     ->label('Cơ quan lưu trữ')
                                     ->options(function () {
                                         $user = auth()->user();
 
-                                        if ($user->role === 'admin') {
+                                        if (in_array($user->role, ['admin', 'super_admin'], true)) {
                                             return \App\Models\Archival::pluck('name', 'id');
                                         }
 
@@ -82,7 +97,7 @@ class OrganizationResource extends Resource
                                         $orgId = session('selected_archival_id');
                                         return $orgId ? \App\Models\Organization::find($orgId)?->archival_id : null;
                                     })
-                                    ->disabled(fn () => auth()->user()?->role !== 'admin')
+                                    ->disabled(fn () => ! in_array(auth()->user()?->role, ['admin', 'super_admin'], true))
                                     ->searchable()
                                     ->preload(),
                                 Forms\Components\TextInput::make('start_year')
@@ -126,7 +141,7 @@ class OrganizationResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                if ($user->role === 'admin') {
+                if (in_array($user->role, ['admin', 'super_admin'], true)) {
                     return $query;
                 }
 

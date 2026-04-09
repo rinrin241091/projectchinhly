@@ -36,6 +36,7 @@ class ArchiveRecordResource extends Resource
     public static function form(Form $form): Form
     {
         $fieldLabels = static::getArchiveRecordFieldLabels();
+        $isPartyOrganization = static::isPartyOrganization();
 
         return $form->schema([
             Forms\Components\Grid::make()
@@ -46,10 +47,20 @@ class ArchiveRecordResource extends Resource
                     Forms\Components\Card::make(heading:'Số lưu trữ')
                         ->schema([
                             Forms\Components\Placeholder::make('selected_phong')
-                                ->label('Phông đang chọn')
+                                ->label($isPartyOrganization ? 'Phông số' : 'Phông đang chọn')
                                 ->content(function () {
                                     $archivalId = session('selected_archival_id');
-                                    return $archivalId ? Organization::find($archivalId)?->name : 'Chưa chọn';
+                                    $organization = $archivalId ? Organization::find($archivalId) : null;
+
+                                    if (! $organization) {
+                                        return 'Chưa chọn';
+                                    }
+
+                                    if (static::isPartyOrganization()) {
+                                        return trim(collect([$organization->code, $organization->name])->filter()->implode(' - '));
+                                    }
+
+                                    return $organization->name;
                                 })
                                 ->visible(fn () => session()->has('selected_archival_id')),
                             Forms\Components\Select::make('storage_id')
@@ -119,11 +130,14 @@ class ArchiveRecordResource extends Resource
                             //---------------------------------//
 
                             Forms\Components\Select::make('archive_record_item_id')
-                                ->label('Chọn mục lục hồ sơ')
+                                ->label($fieldLabels['archive_record_item_id'])
                                 ->default(fn () => session('selected_archive_record_item_id'))
                                 ->relationship('archiveRecordItem', 'title', fn ($query) =>
                                     $query->where('organization_id', session('selected_archival_id'))
                                 )
+                                ->getOptionLabelFromRecordUsing(fn (ArchiveRecordItem $record): string => static::formatArchiveRecordItemLabel($record))
+                                ->searchable(['archive_record_item_code', 'title'])
+                                ->preload()
                                 ->required()
                                 ->reactive()
                                 ->visible(fn () => session()->has('selected_archival_id')),
@@ -174,13 +188,18 @@ class ArchiveRecordResource extends Resource
                             Forms\Components\TextInput::make('title')
                                 ->label($fieldLabels['title'])
                                 ->required()
+                                ->columnSpan($isPartyOrganization ? 2 : 1)
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
+                            Forms\Components\TextInput::make('symbols_code')
+                                ->label($fieldLabels['symbols_code'])
+                                ->visible(fn () => $isPartyOrganization),
                             Forms\Components\Textarea::make('description')
-                                ->label('Chú giải')
+                                ->label($fieldLabels['description'])
                                 ->rows(3)
                                 ->maxLength(65535)
+                                ->columnSpan($isPartyOrganization ? 2 : 1)
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
@@ -262,6 +281,9 @@ class ArchiveRecordResource extends Resource
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
+                            Forms\Components\TextInput::make('usage_mode')
+                                ->label($fieldLabels['usage_mode'])
+                                ->visible(fn () => $isPartyOrganization),
                             // Forms\Components\Select::make('condition')
                             //     ->label('Tình trạng')
                             //     ->options([
@@ -283,7 +305,7 @@ class ArchiveRecordResource extends Resource
                                 }),
                         ])
                         ->columnSpan(1)
-                        ->columns(1)
+                        ->columns($isPartyOrganization ? 2 : 1)
                         ->label('Thông tin hồ sơ'),
                 ])
                 ->columns(2)
@@ -293,9 +315,22 @@ class ArchiveRecordResource extends Resource
 
     private static function getSelectedOrganizationType(): ?string
     {
+        if (filled(session('organization_type'))) {
+            return session('organization_type');
+        }
+
         $archivalId = session('selected_archival_id');
 
         return $archivalId ? Organization::find($archivalId)?->type : null;
+    }
+
+    private static function formatArchiveRecordItemLabel(ArchiveRecordItem $record): string
+    {
+        if (! static::isPartyOrganization()) {
+            return $record->title;
+        }
+
+        return trim(collect([$record->archive_record_item_code, $record->title])->filter()->implode(' - '));
     }
 
     private static function isPartyOrganization(): bool
@@ -307,24 +342,32 @@ class ArchiveRecordResource extends Resource
     {
         if (static::isPartyOrganization()) {
             return [
-                'box_id' => 'Chọn hộp số',
-                'code' => 'Địa chỉ BQ',
-                'title' => 'Tên đơn vị bảo quản',
-                'start_date' => 'Ngày hồ sơ bắt đầu (BĐ)',
-                'end_date' => 'Ngày hồ sơ kết thúc (KT)',
-                'preservation_duration' => 'THBQ',
+                'archive_record_item_id' => 'Mục lục số',
+                'box_id' => 'Số cặp (hộp)',
+                'code' => 'Hồ sơ số',
+                'title' => 'Tên nhóm và tên hồ sơ',
+                'description' => 'Chú giải',
+                'symbols_code' => 'Từ khóa',
+                'start_date' => 'Ngày bắt đầu',
+                'end_date' => 'Ngày kết thúc',
+                'preservation_duration' => 'Thời hạn bảo quản',
                 'page_count' => 'Số lượng tờ',
+                'usage_mode' => 'Độ mật',
             ];
         }
 
         return [
+            'archive_record_item_id' => 'Chọn mục lục hồ sơ',
             'box_id' => 'Chọn hộp',
             'code' => 'Mã hồ sơ',
             'title' => 'Tiêu đề hồ sơ',
+            'description' => 'Chú giải',
+            'symbols_code' => 'Ký hiệu thông tin',
             'start_date' => 'Ngày bắt đầu',
             'end_date' => 'Ngày kết thúc',
             'preservation_duration' => 'Thời hạn bảo quản',
             'page_count' => 'Số lượng tờ',
+            'usage_mode' => 'Chế độ sử dụng',
         ];
     }
 
@@ -461,7 +504,7 @@ class ArchiveRecordResource extends Resource
                         $organizationId = session('selected_archival_id');
                         $archiveRecordItemId = session('selected_archive_record_item_id');
 
-                        if ($user?->role === 'admin') {
+                        if (in_array($user?->role, ['admin', 'super_admin'], true)) {
                             if (!empty($organizationId)) {
                                 $query->where('organization_id', $organizationId);
                             }
@@ -489,7 +532,7 @@ class ArchiveRecordResource extends Resource
                             ->label('Chọn phông lưu trữ')
                             ->options(function () {
                                 $user = auth()->user();
-                                if ($user->role === 'admin') {
+                                if (in_array($user->role, ['admin', 'super_admin'], true)) {
                                     return Organization::pluck('name', 'id');
                                 } else {
                                     return $user->organizations()->pluck('name', 'id');
@@ -499,7 +542,16 @@ class ArchiveRecordResource extends Resource
 
                     ])
                     ->action(function (array $data) {
-                        session(['selected_archival_id' => $data['selected_archival_id_modal']]);
+                        $organization = Organization::find($data['selected_archival_id_modal']);
+
+                        session([
+                            'organization_id' => $organization?->id,
+                            'organization_type' => $organization?->type,
+                            'selected_archival_id' => $organization?->id,
+                            'archival_id' => $organization?->archival_id,
+                            'selected_archive_record_item_id' => null,
+                            'selected_archive_record_id' => null,
+                        ]);
                     })
                     ->visible(fn () => !session()->has('selected_archival_id'))
                     ->extraAttributes(['class' => 'ml-auto']),
@@ -522,7 +574,13 @@ class ArchiveRecordResource extends Resource
                     ->requiresConfirmation()
                     ->color('danger')
                     ->action(function () {
-                        session()->forget('selected_archival_id');
+                        session()->forget([
+                            'organization_id',
+                            'organization_type',
+                            'selected_archival_id',
+                            'selected_archive_record_item_id',
+                            'selected_archive_record_id',
+                        ]);
                     })
                     ->visible(fn () => session()->has('selected_archival_id') && auth()->user()?->role === 'admin'),
                 
@@ -623,15 +681,30 @@ class ArchiveRecordResource extends Resource
                 Tables\Columns\TextColumn::make('id')
                     ->label($black('STT'))
                     ->sortable(),
+                Tables\Columns\TextColumn::make('organization.code')
+                    ->label($black('Phông số'))
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('box.code')
+                    ->label($black('Số cặp (hộp)'))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('archiveRecordItem.archive_record_item_code')
+                    ->label($black('Mục lục số'))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('code')
-                    ->label($black('Địa chỉ BQ'))
+                    ->label($black('Hồ sơ số'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title')
-                    ->label($black('Tên đơn vị bảo quản'))
+                    ->label($black('Tên nhóm và tên hồ sơ'))
                     ->searchable()
                     ->extraAttributes(['style' => 'width: 400px; white-space: normal;']),
+                Tables\Columns\TextColumn::make('symbols_code')
+                    ->label($black('Từ khóa'))
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('description')
+                    ->label($black('Chú giải'))
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('start_date')
-                    ->label($black('Ngày hồ sơ (BĐ - KT)'))
+                    ->label($black('Thời gian bắt đầu và kết thúc'))
                     ->html()
                     ->wrap()
                     ->formatStateUsing(function ($state, $record) {
@@ -641,15 +714,14 @@ class ArchiveRecordResource extends Resource
                     })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('preservation_duration')
-                    ->label($black('THBQ')),
+                    ->label($black('Thời hạn bảo quản')),
                 Tables\Columns\TextColumn::make('page_count')
-                    ->label($black('Số lượng tờ')),
+                    ->label($black('Số trang')),
                 Tables\Columns\TextColumn::make('documents_count')
                     ->counts('documents')
                     ->label($black('Số tài liệu')),
-                Tables\Columns\TextColumn::make('box.code')
-                    ->label($black('Số cặp'))
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('usage_mode')
+                    ->label($black('Độ mật')),
                 Tables\Columns\TextColumn::make('note')
                     ->label($black('Ghi chú'))
                     ->wrap(),

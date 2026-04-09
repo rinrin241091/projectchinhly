@@ -11,8 +11,8 @@
         : null;
     
     // Lấy danh sách phông mà user có quyền truy cập
-    if ($user->role === 'admin') {
-        // Admin có thể thấy tất cả phông
+    if (in_array($user->role, ['admin', 'super_admin'])) {
+        // Admin / super_admin có thể thấy tất cả phông
         $availableOrganizations = \Illuminate\Support\Facades\Cache::remember(
             'topbar:org:list:admin',
             now()->addMinutes(5),
@@ -60,9 +60,9 @@
         </select>
 
         {{-- Chỉ ADMIN mới được nút Chọn lại phông --}}
-        @if($user->role === 'admin')
+        @if(in_array($user->role, ['admin', 'super_admin']))
             <button
-                onclick="if (window.Livewire && typeof window.Livewire.navigate === 'function') { window.Livewire.navigate('{{ route('filament.dashboard.pages.select-organization') }}'); } else { alert('Không thể điều hướng mềm ở phiên này. Vui lòng mở lại trang quản trị.'); }"
+                onclick="window.location.href = '{{ route('filament.dashboard.pages.select-organization') }}';"
                 class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
             >
                 Chọn lại phông
@@ -90,14 +90,7 @@ function changeOrganization(organizationId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const currentUrl = window.location.pathname + window.location.search;
-
-                if (window.Livewire && typeof window.Livewire.navigate === 'function') {
-                    window.Livewire.navigate(currentUrl);
-                    return;
-                }
-
-                alert('Không thể điều hướng mềm ở phiên này. Vui lòng mở lại trang quản trị.');
+                window.location.reload();
             } else {
                 alert(data.message || 'Lỗi khi chuyển phông');
             }

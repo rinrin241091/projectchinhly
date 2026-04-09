@@ -15,6 +15,15 @@ class CreateOrganization extends CreateRecord
         return 'Thêm phông lưu trữ mới';
     }
 
+    protected function getValidationMessages(): array
+    {
+        return [
+            'data.code.required' => 'Vui lòng nhập code phông.',
+            'data.code.unique' => 'Code phông này đã tồn tại. Vui lòng nhập code khác.',
+            'data.name.required' => 'Vui lòng nhập tên phông.',
+        ];
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $startYear = $this->form->getState()['start_year'] ?? null;

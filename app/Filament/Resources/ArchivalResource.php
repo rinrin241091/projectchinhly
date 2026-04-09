@@ -13,6 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rules\Unique;
 
 class ArchivalResource extends Resource
 {
@@ -53,25 +54,42 @@ class ArchivalResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('identifier')
                                     ->label('Mã cơ quan lưu trữ')
+                                    ->validationAttribute('mã cơ quan lưu trữ')
                                     ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
                                     ->maxLength(100)
                                     ->rule('max:100')
+                                    ->live(onBlur: true)
+                                    ->unique(
+                                        table: Archival::class,
+                                        column: 'identifier',
+                                        ignoreRecord: true,
+                                        modifyRuleUsing: fn (Unique $rule) => $rule->whereNotNull('identifier'),
+                                    )
+                                    ->helperText('Mã cơ quan lưu trữ phải là duy nhất.')
                                     ->required(),
                                 Forms\Components\TextInput::make('name')
                                     ->label('Tên cơ quan lưu trữ')
+                                    ->validationAttribute('tên cơ quan lưu trữ')
                                     ->maxLength(255)
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
                                     ->required(),
                                 Forms\Components\TextInput::make('address')
                                     ->label('Địa chỉ')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
                                     ->maxLength(255),
                                 Forms\Components\TextInput::make('phone')
                                     ->label('Số điện thoại')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
                                     ->maxLength(20),
                                 Forms\Components\TextInput::make('email')
                                     ->label('Email liên hệ')
+                                    ->validationAttribute('email liên hệ')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
+                                    ->email()
                                     ->maxLength(100),
                                 Forms\Components\TextInput::make('manager')
                                     ->label('Người phụ trách')
+                                    ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
                                     ->maxLength(100),
 
                             ])
@@ -90,7 +108,7 @@ class ArchivalResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                if ($user->role === 'admin') {
+                if (in_array($user->role, ['admin', 'super_admin'], true)) {
                     return $query;
                 }
 

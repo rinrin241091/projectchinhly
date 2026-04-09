@@ -37,7 +37,11 @@ class EnsureOrganizationSelected
 
         // ⚙️ nếu đã chọn nhưng user không có quyền với phông đó (và không phải admin)
         $orgId = session('selected_archival_id');
-        if (auth()->check() && ! auth()->user()->hasOrganization($orgId)) {
+        if (
+            auth()->check()
+            && ! in_array(auth()->user()->role, ['admin', 'super_admin'], true)
+            && ! auth()->user()->hasOrganization($orgId)
+        ) {
             // xóa session và trả về trang chọn
             session()->forget(['organization_id', 'organization_type', 'selected_archival_id']);
             return redirect()->route('filament.dashboard.pages.select-organization')

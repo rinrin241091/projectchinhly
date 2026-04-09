@@ -27,7 +27,7 @@ class ArchiveRecordsExport implements FromQuery, WithHeadings, WithMapping, Shou
     public function query()
     {
         return (clone $this->query)
-            ->with(['box', 'archiveRecordItem'])
+            ->with(['box', 'archiveRecordItem', 'organization'])
             ->withCount('documents');
     }
 
@@ -36,13 +36,18 @@ class ArchiveRecordsExport implements FromQuery, WithHeadings, WithMapping, Shou
         if ($this->isPartyOrganization()) {
             return [
                 'STT',
-                'Địa chỉ BQ',
-                'Tên đơn vị bảo quản',
-                'Ngày hồ sơ (BĐ - KT)',
-                'THBQ',
+                'Phông số',
+                'Số cặp (hộp)',
+                'Mục lục số',
+                'Hồ sơ số',
+                'Tên nhóm và tên hồ sơ',
+                'Từ khóa',
+                'Chú giải',
+                'Thời gian bắt đầu và kết thúc',
+                'Thời hạn bảo quản',
                 'Số trang',
                 'Số tài liệu',
-                'Số cặp',
+                'Độ mật',
                 'Ghi chú',
             ];
         }
@@ -65,13 +70,18 @@ class ArchiveRecordsExport implements FromQuery, WithHeadings, WithMapping, Shou
         if ($this->isPartyOrganization()) {
             return [
                 $record->id,
+                $record->organization?->code ?? '',
+                $record->box?->code ?? '',
+                $record->archiveRecordItem?->archive_record_item_code ?? '',
                 $record->code ?? '',
                 $record->title ?? '',
+                $record->symbols_code ?? '',
+                $record->description ?? '',
                 $this->formatDateRange($record->start_date, $record->end_date),
                 $record->preservation_duration ?? '',
                 $record->page_count ?? '',
                 $record->documents_count ?? 0,
-                $record->box?->code ?? '',
+                $record->usage_mode ?? '',
                 $record->note ?? '',
             ];
         }

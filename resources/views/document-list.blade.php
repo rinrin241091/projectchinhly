@@ -121,7 +121,7 @@
                             <td>{{ $document->copy_type ?? '' }}</td>
                             <td>{{ $document->page_number ?? '' }}</td>
                             <td>{{ $document->total_pages ?? '' }}</td>
-                            <td>{{ $document->file_count ?? '' }}</td>
+                            <td>{{ $document->file_count ?? 1 }}</td>
                             <td>{{ $document->file_name ?? '' }}</td>
                             <td>{{ $document->document_duration ?? '' }}</td>
                             <td>{{ $document->usage_mode ?? '' }}</td>

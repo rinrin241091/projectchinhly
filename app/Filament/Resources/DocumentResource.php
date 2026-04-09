@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\Organization;
 use App\Models\ArchiveRecord;
+use Illuminate\Validation\Rule;
 
 class DocumentResource extends Resource
 {
@@ -76,26 +77,28 @@ class DocumentResource extends Resource
                     ->preload()
                     ->required(),
 
-                Forms\Components\TextInput::make('document_number')
-                    ->label('Số của văn bản')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('document_symbol')
-                    ->label('Ký hiệu của văn bản')
-                    ->visible(fn () => static::isPartyOrganization()),
-
                 Forms\Components\TextInput::make('document_code')
                     ->label($fieldLabels['document_code'])
-                    ->required(fn () => !static::isPartyOrganization())
+                    ->required()
                     ->live()
-                    ->unique(table: \App\Models\Document::class, column: 'document_code', ignoreRecord: true)
-                    ->visible(fn () => !static::isPartyOrganization()),
+                    ->rule(function () {
+                        if (static::isPartyOrganization()) {
+                            return ['required'];
+                        }
+
+                        $recordId = request()->route('record');
+
+                        return [
+                            'required',
+                            Rule::unique('documents', 'document_code')->ignore($recordId),
+                        ];
+                    }),
 
                 Forms\Components\DatePicker::make('document_date')
                     ->label($fieldLabels['document_date']),
 
                 Forms\Components\TextInput::make('issuing_agency')
-                    ->label('Tên cơ quan, tổ chức ban hành văn bản')
+                    ->label('Tác giả')
                     ->visible(fn () => static::isPartyOrganization()),
                     
                 Forms\Components\Textarea::make('description')
@@ -133,18 +136,11 @@ class DocumentResource extends Resource
                     ->label('Số lượng tệp (file)')
                     ->numeric()
                     ->minValue(0)
+                    ->default(1)
                     ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\TextInput::make('file_name')
-                    ->label('Tên tệp')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('document_duration')
-                    ->label('Thời gian tài liệu')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('usage_mode')
-                    ->label('Chế độ sử dụng')
+                    ->label('Tên tệp tài liệu')
                     ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\Textarea::make('keywords')
@@ -155,30 +151,6 @@ class DocumentResource extends Resource
                 Forms\Components\Textarea::make('note')
                     ->label('Ghi chú')
                     ->rows(2),
-
-                Forms\Components\TextInput::make('language')
-                    ->label('Ngôn ngữ')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('handwritten')
-                    ->label('Bút tích')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('topic')
-                    ->label('Chuyên đề')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('information_code')
-                    ->label('Ký hiệu thông tin')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('reliability_level')
-                    ->label('Mức độ tin cậy')
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('physical_condition')
-                    ->label('Tình trạng vật lý')
-                    ->visible(fn () => static::isPartyOrganization()),
                 
                 Forms\Components\FileUpload::make('file_path')
                     ->label('Tệp đính kèm')
@@ -198,27 +170,21 @@ class DocumentResource extends Resource
                 if (!$user) return $query;
 
                 $query->with(['archive_record.box.shelf']);
-                
-                // Admin can see everything - no filtering
-                if ($user->role === 'admin') {
-                    return $query;
-                }
-                
-                // Non-admin: must select an organization and only see that org's data
-                if ($orgId = session('selected_archival_id')) {
-                    if (!$user->hasOrganization($orgId)) {
-                        // User doesn't have access to this organization
-                        return $query->whereRaw('1 = 0'); // Show nothing
-                    }
-                    // Filter to selected organization
-                    $query->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $orgId)->select('id')->toBase());
-                    // Also filter by selected archive record if applicable
-                    if ($recordId = session('selected_archive_record_id')) {
-                        $query->where('archive_record_id', $recordId);
-                    }
-                } else {
-                    // Non-admin without selected organization: show nothing
+
+                $orgId = session('selected_archival_id');
+
+                if (! $orgId) {
                     return $query->whereRaw('1 = 0');
+                }
+
+                if (! in_array($user->role, ['admin', 'super_admin'], true) && ! $user->hasOrganization($orgId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                $query->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $orgId)->select('id')->toBase());
+
+                if ($recordId = session('selected_archive_record_id')) {
+                    $query->where('archive_record_id', $recordId);
                 }
                 
                 return $query;
@@ -242,6 +208,37 @@ class DocumentResource extends Resource
                     ->url(static::getUrl('import'))
                     ->icon('heroicon-o-rectangle-stack')
                     ->visible(fn() => static::canImport()),
+                Tables\Actions\Action::make('exportExcel')
+                    ->label('Xuất Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->form([
+                        Forms\Components\Select::make('archive_record_id')
+                            ->label('Chọn hồ sơ để xuất')
+                            ->options(function () {
+                                $archiveRecordItemId = session('selected_archive_record_item_id');
+                                $organizationId = session('selected_archival_id');
+
+                                $query = ArchiveRecord::query();
+
+                                if ($archiveRecordItemId) {
+                                    $query->where('archive_record_item_id', $archiveRecordItemId);
+                                } elseif ($organizationId) {
+                                    $query->where('organization_id', $organizationId);
+                                }
+
+                                return $query
+                                    ->orderBy('code')
+                                    ->get()
+                                    ->mapWithKeys(fn ($record) => [$record->id => trim(collect([$record->code, $record->title])->filter()->implode(' - '))])
+                                    ->toArray();
+                            })
+                            ->default(fn () => session('selected_archive_record_id'))
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                    ])
+                    ->action(fn (array $data) => redirect(route('archive-records.documents.export-excel', $data['archive_record_id'])))
+                    ->visible(fn () => session()->has('selected_archival_id') && static::canExport()),
                 //các nút chức năng trên phần header table
  /*NÚT CHỌN ML*/Tables\Actions\Action::make('chonMucLuc')
                     ->label('Chọn mục lục hồ sơ')
@@ -347,6 +344,10 @@ class DocumentResource extends Resource
 
     private static function getSelectedOrganizationType(): ?string
     {
+        if (session()->has('organization_type')) {
+            return session('organization_type');
+        }
+
         $orgId = session('selected_archival_id');
 
         return $orgId ? Organization::find($orgId)?->type : null;
@@ -361,10 +362,10 @@ class DocumentResource extends Resource
     {
         if (static::isPartyOrganization()) {
             return [
-                'doc_type_id' => 'Tên loại văn bản',
-                'document_code' => 'Số của văn bản / Ký hiệu của văn bản',
-                'document_date' => 'Ngày, tháng, năm văn bản',
-                'description' => 'Trích yếu nội dung',
+                'doc_type_id' => 'Tên loại và trích yếu (Tên loại)',
+                'document_code' => 'Số, ký hiệu',
+                'document_date' => 'Ngày tháng',
+                'description' => 'Tên loại và trích yếu (Trích yếu)',
                 'signer' => 'Người ký',
                 'author' => 'Tác giả',
                 'page_number' => 'Trang số',
@@ -391,30 +392,21 @@ class DocumentResource extends Resource
         if (static::isPartyOrganization()) {
             return [
                 Tables\Columns\TextColumn::make('id')
-                    ->label($black('STT'))
+                    ->label($black('Số TT'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('document_number')
-                    ->label($black('Số của văn bản'))
-                    ->formatStateUsing(fn ($state, $record) => $state ?: $record->document_code)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('document_symbol')
-                    ->label($black('Ký hiệu của văn bản'))
-                    ->formatStateUsing(fn ($state, $record) => $state ?: $record->document_code)
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('document_code')
-                    ->label($black('Số của văn bản / Ký hiệu của văn bản'))
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label($black('Số, ký hiệu'))
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('document_date')
-                    ->label($black('Ngày, tháng, năm văn bản'))
+                    ->label($black('Ngày tháng'))
                     ->date('d/m/Y'),
-                Tables\Columns\TextColumn::make('issuing_agency')
-                    ->label($black('Tên cơ quan, tổ chức ban hành văn bản')),
                 Tables\Columns\TextColumn::make('docType.name')
-                    ->label($black('Tên loại văn bản')),
-                Tables\Columns\TextColumn::make('description')
-                    ->label($black('Trích yếu nội dung'))
-                    ->limit(80)
+                    ->label($black('Tên loại và trích yếu'))
+                    ->formatStateUsing(fn ($state, $record) => trim(collect([$state, $record->description])->filter()->implode(' - ')))
+                    ->limit(100)
                     ->wrap(),
+                Tables\Columns\TextColumn::make('issuing_agency')
+                    ->label($black('Tác giả')),
                 Tables\Columns\TextColumn::make('signer')
                     ->label($black('Người ký'))
                     ->formatStateUsing(fn ($state, $record) => $state ?: $record->author),
@@ -426,32 +418,17 @@ class DocumentResource extends Resource
                     ->label($black('Trang số')),
                 Tables\Columns\TextColumn::make('total_pages')
                     ->label($black('Số trang')),
-                Tables\Columns\TextColumn::make('file_count')
-                    ->label($black('Số lượng tệp (file)')),
-                Tables\Columns\TextColumn::make('file_name')
-                    ->label($black('Tên tệp')),
-                Tables\Columns\TextColumn::make('document_duration')
-                    ->label($black('Thời gian tài liệu')),
-                Tables\Columns\TextColumn::make('usage_mode')
-                    ->label($black('Chế độ sử dụng')),
                 Tables\Columns\TextColumn::make('keywords')
-                    ->label($black('Từ khóa')),
-                Tables\Columns\TextColumn::make('archive_record.code')
-                    ->label($black('Mã hồ sơ')),
+                    ->label($black('Từ khoá'))
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('note')
-                    ->label($black('Ghi chú')),
-                Tables\Columns\TextColumn::make('language')
-                    ->label($black('Ngôn ngữ')),
-                Tables\Columns\TextColumn::make('handwritten')
-                    ->label($black('Bút tích')),
-                Tables\Columns\TextColumn::make('topic')
-                    ->label($black('Chuyên đề')),
-                Tables\Columns\TextColumn::make('information_code')
-                    ->label($black('Ký hiệu thông tin')),
-                Tables\Columns\TextColumn::make('reliability_level')
-                    ->label($black('Mức độ tin cậy')),
-                Tables\Columns\TextColumn::make('physical_condition')
-                    ->label($black('Tình trạng vật lý')),
+                    ->label($black('Ghi chú'))
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('file_count')
+                    ->label($black('Số lượng tệp (file)'))
+                    ->formatStateUsing(fn ($state) => $state ?? 1),
+                Tables\Columns\TextColumn::make('file_name')
+                    ->label($black('Tên tệp tài liệu')),
                 static::makeQrColumn(),
             ];
         }

@@ -8,6 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\DocumentListExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 
 class DocumentListController extends Controller
 {
@@ -90,8 +91,13 @@ class DocumentListController extends Controller
 
     public function exportExcel($id)
     {
-        $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization', 'box'])->findOrFail($id);
-        
-        return Excel::download(new DocumentListExport($archiveRecord), "danh-sach-tai-lieu-{$archiveRecord->code}.xlsx");
+        $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization', 'archiveRecordItem', 'box'])->findOrFail($id);
+
+        $fileName = Str::of($archiveRecord->title ?? 'Danh sach tai lieu')
+            ->replaceMatches('/[\\\\\/:*?"<>|]/', ' ')
+            ->trim()
+            ->toString();
+
+        return Excel::download(new DocumentListExport($archiveRecord), "{$fileName}.xlsx");
     }
 }

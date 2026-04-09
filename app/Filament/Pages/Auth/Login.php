@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Auth;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -106,6 +107,12 @@ class Login extends \Filament\Pages\Auth\Login
             ->label('Captcha')
             ->content(fn (): HtmlString => new HtmlString($this->getCaptchaImageHtml()))
             ->columnSpanFull();
+    }
+
+    protected function getPasswordFormComponent(): Component
+    {
+        return parent::getPasswordFormComponent()
+            ->revealable();
     }
 
     protected function getCaptchaFormComponent(): TextInput

@@ -11,6 +11,7 @@ class Document extends Model
 {
     use HasFactory;
     protected $fillable = ['archive_record_id',
+                            'stt',
                             'doc_type_id',
                             'record_id',
                              'description',

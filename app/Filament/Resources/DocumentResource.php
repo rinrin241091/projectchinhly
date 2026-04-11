@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\Organization;
 use App\Models\ArchiveRecord;
+use App\Models\DocType;
+use App\Models\RecordType;
 use Illuminate\Validation\Rule;
 
 class DocumentResource extends Resource
@@ -72,9 +74,63 @@ class DocumentResource extends Resource
 
                 Forms\Components\Select::make('doc_type_id')
                     ->label($fieldLabels['doc_type_id'])
-                    ->relationship('docType', 'name')
+                    ->options(fn (): array => static::getRecordTypeOptionsMappedToDocTypes())
                     ->searchable()
                     ->preload()
+                    ->required(),
+
+                Forms\Components\TextInput::make('stt')
+                    ->label('STT')
+                    ->numeric()
+                    ->minValue(1)
+                    ->live()
+                    ->afterStateUpdated(function ($livewire, $component) {
+                        $livewire->validateOnly($component->getStatePath());
+                    })
+                    ->rule(function (callable $get) {
+                        return function (string $attribute, $value, \Closure $fail) use ($get): void {
+                            if (! $value) {
+                                return;
+                            }
+
+                            $archiveRecordId = $get('archive_record_id');
+                            if (! $archiveRecordId) {
+                                return;
+                            }
+
+                            $query = Document::query()
+                                ->where('archive_record_id', $archiveRecordId)
+                                ->where('stt', $value);
+
+                            $recordId = request()->route('record');
+                            if ($recordId) {
+                                $query->whereKeyNot(is_object($recordId) ? $recordId->getKey() : $recordId);
+                            }
+
+                            if ($query->exists()) {
+                                $fail("STT {$value} đã tồn tại trong hồ sơ này. Hồ sơ đang có STT {$value} rồi, vui lòng nhập số khác.");
+                            }
+                        };
+                    })
+                    ->helperText(function (callable $get): string {
+                        $archiveRecordId = $get('archive_record_id');
+
+                        if (! $archiveRecordId) {
+                            return 'Chọn hồ sơ lưu trữ trước để xem STT hiện tại.';
+                        }
+
+                        $currentMaxStt = Document::query()
+                            ->where('archive_record_id', $archiveRecordId)
+                            ->max('stt');
+
+                        if (! $currentMaxStt) {
+                            return 'Hồ sơ này chưa có tài liệu nào. Bạn có thể nhập STT bắt đầu từ 1.';
+                        }
+
+                        $suggestedNext = (int) $currentMaxStt + 1;
+
+                        return "Hồ sơ này hiện đang đến STT {$currentMaxStt}. Gợi ý nhập tiếp: {$suggestedNext}.";
+                    })
                     ->required(),
 
                 Forms\Components\TextInput::make('document_code')
@@ -358,11 +414,32 @@ class DocumentResource extends Resource
         return static::getSelectedOrganizationType() === 'Đảng';
     }
 
+    private static function getRecordTypeOptionsMappedToDocTypes(): array
+    {
+        $options = [];
+
+        $recordTypes = RecordType::query()
+            ->orderBy('code')
+            ->orderBy('name')
+            ->get(['code', 'name', 'description']);
+
+        foreach ($recordTypes as $recordType) {
+            $docType = DocType::firstOrCreate(
+                ['name' => $recordType->name],
+                ['description' => $recordType->description]
+            );
+
+            $options[$docType->id] = $recordType->name;
+        }
+
+        return $options;
+    }
+
     private static function getDocumentFieldLabels(): array
     {
         if (static::isPartyOrganization()) {
             return [
-                'doc_type_id' => 'Tên loại và trích yếu (Tên loại)',
+                'doc_type_id' => 'Chọn loại hồ sơ',
                 'document_code' => 'Số, ký hiệu',
                 'document_date' => 'Ngày tháng',
                 'description' => 'Tên loại và trích yếu (Trích yếu)',
@@ -435,6 +512,9 @@ class DocumentResource extends Resource
 
         // Chính quyền giữ nguyên layout hiện có.
         return [
+            Tables\Columns\TextColumn::make('stt')
+                ->label('STT')
+                ->sortable(),
             Tables\Columns\TextColumn::make('document_code')
                 ->label('Số ký hiệu')
                 ->searchable(),
@@ -447,7 +527,7 @@ class DocumentResource extends Resource
             Tables\Columns\TextColumn::make('archive_record.code')
                 ->label('Mã hồ sơ'),
             Tables\Columns\TextColumn::make('docType.name')
-                ->label('Loại tài liệu'),
+                ->label('Loại hồ sơ'),
             Tables\Columns\TextColumn::make('author')
                 ->label('Tác giả')
                 ->formatStateUsing(fn ($state, $record) => $state ?: $record->signer),

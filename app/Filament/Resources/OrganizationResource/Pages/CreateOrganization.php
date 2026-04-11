@@ -5,6 +5,7 @@ namespace App\Filament\Resources\OrganizationResource\Pages;
 use App\Filament\Resources\OrganizationResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\Cache;
 
 class CreateOrganization extends CreateRecord
 {
@@ -44,6 +45,34 @@ class CreateOrganization extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        $user = auth()->user();
+        $organization = $this->record;
+
+        if (! $user || ! $organization) {
+            return;
+        }
+
+        // Teamlead tạo phông sẽ tự được gán quyền trong chính phông đó.
+        if ($user->role === 'teamlead') {
+            $user->organizations()->syncWithoutDetaching([
+                $organization->id => ['role' => 'teamlead'],
+            ]);
+        }
+
+        Cache::forget('topbar:org:list:user:' . $user->id);
+        Cache::forget('topbar:org:list:admin');
+
+        session([
+            'organization_type' => $organization->type,
+            'organization_id' => $organization->id,
+            'selected_archival_id' => $organization->id,
+            'archival_id' => $organization->archival_id,
+        ]);
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index'); // Chuyển về danh sách Đơn vị lưu trữ

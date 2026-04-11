@@ -52,7 +52,7 @@ class BoxResource extends Resource
                     if (!$storageId && session()->has('selected_archival_id')) {
                         $orgId = session('selected_archival_id');
 
-                        if ($user && $user->role !== 'admin' && !$user->hasOrganization($orgId)) {
+                        if ($user && !in_array($user->role, ['admin', 'super_admin', 'teamlead'], true) && !$user->hasOrganization($orgId)) {
                             return [];
                         }
 
@@ -110,8 +110,8 @@ class BoxResource extends Resource
                     'shelf.storage.archival:id,name'
                 ]);
                 
-                // Admin can see everything - no filtering
-                if ($user->role === 'admin') {
+                // Admin/teamlead can see everything - no filtering
+                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                     return $query;
                 }
                 

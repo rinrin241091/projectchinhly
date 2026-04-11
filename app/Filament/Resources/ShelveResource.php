@@ -54,8 +54,8 @@ class ShelveResource extends Resource
                 $user = auth()->user();
                 if (!$user) return $query;
                 
-                // Admin can see everything - no filtering
-                if ($user->role === 'admin') {
+                // Admin/teamlead can see everything - no filtering
+                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                     return $query;
                 }
                 

@@ -73,7 +73,7 @@ class OrganizationResource extends Resource
                                     ->options(function () {
                                         $user = auth()->user();
 
-                                        if (in_array($user->role, ['admin', 'super_admin'], true)) {
+                                        if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                                             return \App\Models\Archival::pluck('name', 'id');
                                         }
 
@@ -97,7 +97,7 @@ class OrganizationResource extends Resource
                                         $orgId = session('selected_archival_id');
                                         return $orgId ? \App\Models\Organization::find($orgId)?->archival_id : null;
                                     })
-                                    ->disabled(fn () => ! in_array(auth()->user()?->role, ['admin', 'super_admin'], true))
+                                    ->disabled(fn () => ! in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true))
                                     ->searchable()
                                     ->preload(),
                                 Forms\Components\TextInput::make('start_year')
@@ -141,7 +141,7 @@ class OrganizationResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                if (in_array($user->role, ['admin', 'super_admin'], true)) {
+                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                     return $query;
                 }
 

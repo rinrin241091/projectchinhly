@@ -108,7 +108,7 @@ class ArchivalResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                if (in_array($user->role, ['admin', 'super_admin'], true)) {
+                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                     return $query;
                 }
 

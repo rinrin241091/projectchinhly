@@ -43,8 +43,8 @@ class StorageResource extends Resource
 
                                 $user = auth()->user();
 
-                                // ADMIN: thấy tất cả cơ quan
-                                if ($user->role === 'admin') {
+                                // ADMIN/TEAMLEAD: thấy tất cả cơ quan
+                                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                                     return Archival::pluck('name', 'id');
                                 }
 
@@ -76,7 +76,7 @@ class StorageResource extends Resource
 
                                 return null;
                             })
-                            ->disabled(fn () => auth()->user()->role !== 'admin')
+                            ->disabled(fn () => ! in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true))
                             ->required()
                             ->searchable()
                             ->preload(),
@@ -111,8 +111,8 @@ class StorageResource extends Resource
 
                 $user = auth()->user();
 
-                // ADMIN: không filter
-                if ($user->role === 'admin') {
+                // ADMIN/TEAMLEAD: không filter
+                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
                     return $query;
                 }
 

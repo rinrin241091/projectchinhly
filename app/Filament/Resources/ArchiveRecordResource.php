@@ -80,14 +80,23 @@ class ArchiveRecordResource extends Resource
                                         ->pluck('name', 'id')
                                         ->toArray();
                                 })
+                                ->default(fn () => session('archive_record_create_storage_id'))
                                 ->afterStateHydrated(function ($state, callable $set, $record) {
                                     if (!$state && $record?->box_id) {
                                         $set('storage_id', $record?->box?->shelf?->storage?->id);
+                                    } elseif (! $state && session()->has('archive_record_create_storage_id')) {
+                                        $set('storage_id', session('archive_record_create_storage_id'));
                                     }
                                 })
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function (callable $set) {
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    session([
+                                        'archive_record_create_storage_id' => $state,
+                                        'archive_record_create_shelve_id' => null,
+                                        'archive_record_create_box_id' => null,
+                                    ]);
+
                                     $set('shelve_id', null);
                                     $set('box_id', null);
                                 }),
@@ -99,15 +108,25 @@ class ArchiveRecordResource extends Resource
                                         ? Shelf::where('storage_id', $storageId)->pluck('description', 'id')->toArray()
                                         : [];
                                 })
+                                ->default(fn () => session('archive_record_create_shelve_id'))
                                 ->afterStateHydrated(function ($state, callable $set, $record) {
                                     if (!$state && $record?->box_id) {
                                         $set('shelve_id', $record?->box?->shelf?->id);
+                                    } elseif (! $state && session()->has('archive_record_create_shelve_id')) {
+                                        $set('shelve_id', session('archive_record_create_shelve_id'));
                                     }
                                 })
                                 ->required()
                                 ->reactive()
                                 ->disabled(fn (callable $get) => !$get('storage_id'))
-                                ->afterStateUpdated(fn (callable $set) => $set('box_id', null)),
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    session([
+                                        'archive_record_create_shelve_id' => $state,
+                                        'archive_record_create_box_id' => null,
+                                    ]);
+
+                                    $set('box_id', null);
+                                }),
                             // ------------------------------------//
                             
 
@@ -123,15 +142,16 @@ class ArchiveRecordResource extends Resource
                                     ->mapWithKeys(fn ($box) => [$box->id => $box->code . ' - ' . $box->description])
                                     ->toArray();
                             })
-                            ->default(fn () => session('selected_box_id'))
+                            ->default(fn () => session('archive_record_create_box_id', session('selected_box_id')))
                             ->required()
                             ->reactive()
+                            ->afterStateUpdated(fn ($state) => session(['archive_record_create_box_id' => $state]))
                             ->disabled(fn (callable $get) => !$get('shelve_id')),
                             //---------------------------------//
 
                             Forms\Components\Select::make('archive_record_item_id')
                                 ->label($fieldLabels['archive_record_item_id'])
-                                ->default(fn () => session('selected_archive_record_item_id'))
+                                ->default(fn () => session('archive_record_create_item_id', session('selected_archive_record_item_id')))
                                 ->relationship('archiveRecordItem', 'title', fn ($query) =>
                                     $query->where('organization_id', session('selected_archival_id'))
                                 )
@@ -140,6 +160,7 @@ class ArchiveRecordResource extends Resource
                                 ->preload()
                                 ->required()
                                 ->reactive()
+                                ->afterStateUpdated(fn ($state) => session(['archive_record_create_item_id' => $state]))
                                 ->visible(fn () => session()->has('selected_archival_id')),
 
                             Forms\Components\TextInput::make('code')
@@ -162,16 +183,6 @@ class ArchiveRecordResource extends Resource
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
-                            Forms\Components\TextInput::make('reference_code')
-                                ->label('Mã tham chiếu')
-                                ->disabled()
-                                ->dehydrated(false)
-                                ->visible(function (callable $get) {
-                                    return $get('organization_id') || session()->has('selected_archival_id');
-                                }),
-                        
-
-
                         ])
                         ->columnSpan(1)
                         ->columns(1)

@@ -44,15 +44,16 @@ class BoxResource extends Resource
                 ->label('Chọn kệ chứa')
                 ->options(function ($record) {
                     $user = auth()->user();
+                    $selectedOrganizationId = session('selected_archival_id');
 
                     // 🔸 Nếu đang edit: lấy mã kho từ hộp hiện tại
                     $storageId = $record?->shelf?->storage?->id;
 
                     // 🔸 Nếu đang tạo mới, có thể load theo phông đang chọn
-                    if (!$storageId && session()->has('selected_archival_id')) {
-                        $orgId = session('selected_archival_id');
+                    if (!$storageId && $selectedOrganizationId) {
+                        $orgId = $selectedOrganizationId;
 
-                        if ($user && !in_array($user->role, ['admin', 'super_admin', 'teamlead'], true) && !$user->hasOrganization($orgId)) {
+                        if ($user && !in_array($user->role, ['admin', 'super_admin'], true) && !$user->hasOrganization($orgId)) {
                             return [];
                         }
 
@@ -101,7 +102,9 @@ class BoxResource extends Resource
             ->striped()
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
-                if (!$user) return $query;
+                if (! $user) {
+                    return $query->whereRaw('1 = 0');
+                }
                 
                 // Eager load relationships để tránh N+1 query
                 $query->with([
@@ -109,27 +112,28 @@ class BoxResource extends Resource
                     'shelf.storage:id,archival_id,name',
                     'shelf.storage.archival:id,name'
                 ]);
-                
-                // Admin/teamlead can see everything - no filtering
-                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
-                    return $query;
-                }
-                
-                // Non-admin: must select an organization and only see that org's data
-                if ($orgId = session('selected_archival_id')) {
-                    if (!$user->hasOrganization($orgId)) {
-                        return $query->whereRaw('1 = 0');
-                    }
-                    // Get the archival from organization
-                    $archival = \App\Models\Organization::find($orgId)?->archival;
-                    if ($archival) {
-                        $query->whereIn('shelf_id', \App\Models\Shelf::whereIn('storage_id', \App\Models\Storage::where('archival_id', $archival->id)->select('id')->toBase())->select('id')->toBase());
-                    } else {
-                        return $query->whereRaw('1 = 0');
-                    }
-                } else {
+
+                $orgId = session('selected_archival_id');
+                if (! $orgId) {
                     return $query->whereRaw('1 = 0');
                 }
+
+                if (! in_array($user->role, ['admin', 'super_admin'], true) && ! $user->hasOrganization($orgId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                $archivalId = \App\Models\Organization::find($orgId)?->archival_id;
+                if (! $archivalId) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                $query->whereIn(
+                    'shelf_id',
+                    \App\Models\Shelf::whereIn(
+                        'storage_id',
+                        \App\Models\Storage::where('archival_id', $archivalId)->select('id')->toBase()
+                    )->select('id')->toBase()
+                );
                 
                 return $query;
             })

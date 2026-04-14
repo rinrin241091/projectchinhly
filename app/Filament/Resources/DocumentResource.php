@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\Organization;
+use App\Filament\Pages\BulkCreateDocuments;
 use App\Models\ArchiveRecord;
 use App\Models\DocType;
 use App\Models\RecordType;
@@ -62,7 +63,7 @@ class DocumentResource extends Resource
                             })
                             ->toArray();
                     })
-                    ->default(fn () => session('selected_archive_record_id')) // load sẵn từ session
+                    ->default(fn () => session('document_form_draft.archive_record_id', session('selected_archive_record_id')))
                     ->afterStateHydrated(function ($state, callable $set, $record) {
                         if (!$state && $record?->organization_id) {
                             $set('organization_id', $record->archive_record?->organization?->id);
@@ -70,71 +71,33 @@ class DocumentResource extends Resource
                     })
                     ->searchable(['code', 'title'])
                     ->required()
-                    ->reactive(),
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        if (! $state) {
+                            return;
+                        }
+
+                        $nextStt = Document::query()
+                            ->where('archive_record_id', $state)
+                            ->max('stt');
+
+                        $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
+                    }),
 
                 Forms\Components\Select::make('doc_type_id')
                     ->label($fieldLabels['doc_type_id'])
                     ->options(fn (): array => static::getRecordTypeOptionsMappedToDocTypes())
                     ->searchable()
                     ->preload()
-                    ->required(),
-
-                Forms\Components\TextInput::make('stt')
-                    ->label('STT')
-                    ->numeric()
-                    ->minValue(1)
-                    ->live()
-                    ->afterStateUpdated(function ($livewire, $component) {
-                        $livewire->validateOnly($component->getStatePath());
-                    })
-                    ->rule(function (callable $get) {
-                        return function (string $attribute, $value, \Closure $fail) use ($get): void {
-                            if (! $value) {
-                                return;
-                            }
-
-                            $archiveRecordId = $get('archive_record_id');
-                            if (! $archiveRecordId) {
-                                return;
-                            }
-
-                            $query = Document::query()
-                                ->where('archive_record_id', $archiveRecordId)
-                                ->where('stt', $value);
-
-                            $recordId = request()->route('record');
-                            if ($recordId) {
-                                $query->whereKeyNot(is_object($recordId) ? $recordId->getKey() : $recordId);
-                            }
-
-                            if ($query->exists()) {
-                                $fail("STT {$value} đã tồn tại trong hồ sơ này. Hồ sơ đang có STT {$value} rồi, vui lòng nhập số khác.");
-                            }
-                        };
-                    })
-                    ->helperText(function (callable $get): string {
-                        $archiveRecordId = $get('archive_record_id');
-
-                        if (! $archiveRecordId) {
-                            return 'Chọn hồ sơ lưu trữ trước để xem STT hiện tại.';
-                        }
-
-                        $currentMaxStt = Document::query()
-                            ->where('archive_record_id', $archiveRecordId)
-                            ->max('stt');
-
-                        if (! $currentMaxStt) {
-                            return 'Hồ sơ này chưa có tài liệu nào. Bạn có thể nhập STT bắt đầu từ 1.';
-                        }
-
-                        $suggestedNext = (int) $currentMaxStt + 1;
-
-                        return "Hồ sơ này hiện đang đến STT {$currentMaxStt}. Gợi ý nhập tiếp: {$suggestedNext}.";
-                    })
+                    ->default(fn () => session('document_form_draft.doc_type_id', function () {
+                        $firstDocType = \App\Models\DocType::orderBy('id')->first();
+                        return $firstDocType?->id;
+                    }))
                     ->required(),
 
                 Forms\Components\TextInput::make('document_code')
                     ->label($fieldLabels['document_code'])
+                    ->default(fn () => session('document_form_draft.document_code'))
                     ->required()
                     ->live()
                     ->rule(function () {
@@ -151,61 +114,103 @@ class DocumentResource extends Resource
                     }),
 
                 Forms\Components\DatePicker::make('document_date')
-                    ->label($fieldLabels['document_date']),
+                    ->label($fieldLabels['document_date'])
+                    ->default(fn () => session('document_form_draft.document_date')),
 
                 Forms\Components\TextInput::make('issuing_agency')
                     ->label('Tác giả')
+                    ->default(fn () => session('document_form_draft.issuing_agency'))
                     ->visible(fn () => static::isPartyOrganization()),
                     
                 Forms\Components\Textarea::make('description')
                     ->label($fieldLabels['description'])
+                    ->default(fn () => session('document_form_draft.description', ''))
                     ->rows(3),
 
                 Forms\Components\TextInput::make('signer')
                     ->label($fieldLabels['signer'])
+                    ->default(fn () => session('document_form_draft.signer'))
                     ->visible(fn () => static::isPartyOrganization())
                     ->dehydrated(fn () => static::isPartyOrganization()),
 
                 Forms\Components\TextInput::make('author')
                     ->label($fieldLabels['author'])
+                    ->default(fn () => session('document_form_draft.author'))
                     ->visible(fn () => !static::isPartyOrganization())
                     ->dehydrated(fn () => !static::isPartyOrganization()),
 
-                Forms\Components\TextInput::make('security_level')
+                Forms\Components\Radio::make('security_level')
                     ->label('Độ mật')
+                    ->options([
+                        'thường' => 'Thường',
+                        'mật' => 'Mật',
+                        'tuyệt mật' => 'Tuyệt mật',
+                        'tối mật' => 'Tối mật',
+                    ])
+                    ->default(fn () => session('document_form_draft.security_level', 'thường'))
                     ->visible(fn () => static::isPartyOrganization()),
 
-                Forms\Components\TextInput::make('copy_type')
+                Forms\Components\Select::make('copy_type')
                     ->label('Loại bản')
+                    ->options([
+                        'Bản chính' => 'Bản chính',
+                        'Bản sao' => 'Bản sao',
+                    ])
+                    ->default(fn () => session('document_form_draft.copy_type'))
                     ->visible(fn () => static::isPartyOrganization()),
                 
-                Forms\Components\TextInput::make('page_number')
-                    ->label($fieldLabels['page_number']),
+                Forms\Components\TextInput::make('page_number_from')
+                    ->label('Từ trang số')
+                    ->numeric()
+                    ->minValue(0)
+                    ->afterStateHydrated(function ($component, $record) {
+                        if ($record?->page_number) {
+                            [$from] = explode('-', $record->page_number . '-');
+                            $component->state((int) $from);
+                        }
+                    }),
+
+                Forms\Components\TextInput::make('page_number_to')
+                    ->label('Đến trang số')
+                    ->numeric()
+                    ->minValue(0)
+                    ->afterStateHydrated(function ($component, $record) {
+                        if ($record?->page_number && strpos($record->page_number, '-') !== false) {
+                            [, $to] = explode('-', $record->page_number . '-', 2);
+                            if ($to) {
+                                $component->state((int) $to);
+                            }
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('total_pages')
                     ->label('Số trang')
                     ->numeric()
                     ->minValue(0)
+                    ->default(fn () => session('document_form_draft.total_pages'))
                     ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\TextInput::make('file_count')
                     ->label('Số lượng tệp (file)')
                     ->numeric()
                     ->minValue(0)
-                    ->default(1)
+                    ->default(fn () => session('document_form_draft.file_count', 1))
                     ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\TextInput::make('file_name')
                     ->label('Tên tệp tài liệu')
+                    ->default(fn () => session('document_form_draft.file_name'))
                     ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\Textarea::make('keywords')
                     ->label('Từ khóa')
+                    ->default(fn () => session('document_form_draft.keywords'))
                     ->rows(2)
                     ->visible(fn () => static::isPartyOrganization()),
                 
                 Forms\Components\Textarea::make('note')
                     ->label('Ghi chú')
+                    ->default(fn () => session('document_form_draft.note'))
                     ->rows(2),
                 
                 Forms\Components\FileUpload::make('file_path')
@@ -258,6 +263,11 @@ class DocumentResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->visible(fn() => static::canCreate()),
+                Tables\Actions\Action::make('bulkCreateDocuments')
+                    ->label('Tạo nhiều văn bản')
+                    ->icon('heroicon-o-document-text')
+                    ->url(BulkCreateDocuments::getUrl())
                     ->visible(fn() => static::canCreate()),
                 Tables\Actions\Action::make('import')
                     ->label('Import')

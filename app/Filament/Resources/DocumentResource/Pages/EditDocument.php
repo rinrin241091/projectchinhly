@@ -19,6 +19,10 @@ class EditDocument extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Nếu check 'Không số', set document_code là '(Không số)'
+        if (!empty($data['no_number'])) {
+            $data['document_code'] = '(Không số)';
+        }
         // Ensure doc_type_id is set before updating the record
         if (empty($data['doc_type_id'])) {
             $data['doc_type_id'] = 5; // Mặc định là id=5 (Mặc định)

@@ -61,13 +61,21 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
         ];
 
         // Data rows
+        $documents = $this->archiveRecord->documents->sort(function ($a, $b) {
+            $aVal = is_numeric($a->page_number_from) ? (int)$a->page_number_from : PHP_INT_MAX;
+            $bVal = is_numeric($b->page_number_from) ? (int)$b->page_number_from : PHP_INT_MAX;
+            if ($aVal === $bVal) {
+                return 0;
+            }
+            return $aVal <=> $bVal;
+        })->values();
+
         $rowNumber = 0;
-        foreach ($this->archiveRecord->documents as $document) {
+        foreach ($documents as $document) {
             $rowNumber++;
-            // Use merged field; fallback for legacy rows before migration
-            $soKyHieu = $document->document_code
-                ?: trim(collect([$document->document_number, $document->document_symbol])->filter()->implode('/'));
-            // Chỉ lấy trích yếu (description), không lấy tên loại
+            $soKyHieu = ($document->document_code === '(Không số)')
+                ? ''
+                : ($document->document_code ?: trim(collect([$document->document_number, $document->document_symbol])->filter()->implode('/')));
             $tenLoaiTrichYeu = $document->description ?? '';
             $rows[] = [
                 $rowNumber,
@@ -105,9 +113,18 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
         ];
 
         // Data rows
-        foreach ($this->archiveRecord->documents as $document) {
+        $documents = $this->archiveRecord->documents->sort(function ($a, $b) {
+            $aVal = is_numeric($a->page_number_from) ? (int)$a->page_number_from : PHP_INT_MAX;
+            $bVal = is_numeric($b->page_number_from) ? (int)$b->page_number_from : PHP_INT_MAX;
+            if ($aVal === $bVal) {
+                return 0;
+            }
+            return $aVal <=> $bVal;
+        })->values();
+
+        foreach ($documents as $document) {
             $rows[] = [
-                $document->document_code ?? '',
+                ($document->document_code === '(Không số)') ? '' : ($document->document_code ?? ''),
                 $this->formatDate($document->document_date, $document->date_unverified ?? false),
                 $document->description ?? '',
                 $document->author ?: $document->signer ?: '',

@@ -53,7 +53,33 @@ class DocumentResource extends Resource
                                 return $archivalId ? Organization::find($archivalId)?->name : 'Chưa chọn';
                             })
                             ->visible(fn () => session()->has('selected_archival_id')),
-
+                        Forms\Components\Grid::make()
+                            ->columns(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('document_code')
+                                    ->label($fieldLabels['document_code'] . ' *')
+                                    ->default(fn (callable $get) => $get('no_number') ? '(Không số)' : session('document_form_draft.document_code'))
+                                    ->autofocus()
+                                    ->placeholder('Nhập số, ký hiệu')
+                                    ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
+                                    ->disabled(fn (callable $get) => $get('no_number'))
+                                    ->required(fn (callable $get) => !$get('no_number'))
+                                    ->live()
+                                    ->dehydrated()
+                                    ->rule(function (callable $get) {
+                                        $recordId = request()->route('record');
+                                        if ($get('no_number')) return [];
+                                        return [
+                                            'required',
+                                            Rule::unique('documents', 'document_code')->ignore($recordId),
+                                        ];
+                                    }),
+                                Forms\Components\Checkbox::make('no_number')
+                                    ->label('Không số')
+                                    ->helperText('Tick nếu tài liệu không có số, ký hiệu.')
+                                    ->reactive(),
+                            ]),
+                  
                         Forms\Components\Select::make('archive_record_id')
                             ->label('Chọn hồ sơ lưu trữ')
                             ->options(function ($state, callable $set, $record) {
@@ -93,14 +119,17 @@ class DocumentResource extends Resource
 
                         Forms\Components\TextInput::make('document_code')
                             ->label($fieldLabels['document_code'] . ' *')
-                            ->default(fn () => session('document_form_draft.document_code'))
+                            ->default(fn (callable $get) => $get('no_number') ? '(Không số)' : session('document_form_draft.document_code'))
                             ->autofocus()
                             ->placeholder('Nhập số, ký hiệu')
                             ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
-                            ->required()
+                            ->disabled(fn (callable $get) => $get('no_number'))
+                            ->required(fn (callable $get) => !$get('no_number'))
                             ->live()
-                            ->rule(function () {
+                            ->dehydrated()
+                            ->rule(function (callable $get) {
                                 $recordId = request()->route('record');
+                                if ($get('no_number')) return [];
                                 return [
                                     'required',
                                     Rule::unique('documents', 'document_code')->ignore($recordId),
@@ -164,7 +193,7 @@ class DocumentResource extends Resource
                                 'Tuyệt mật' => 'Tuyệt mật',
                                 'Tối mật' => 'Tối mật',
                             ])
-                            ->default(fn () => session('document_form_draft.security_level', 'thường'))
+                            ->default('Thường')
                             ->visible(fn () => static::isPartyOrganization()),
 
                         Forms\Components\Select::make('copy_type')
@@ -637,7 +666,11 @@ class DocumentResource extends Resource
                     ->sortable(false),
                 Tables\Columns\TextColumn::make('document_code')
                     ->label($black('Số, ký hiệu'))
-                    ->searchable(),
+                    ->searchable()
+                    ->formatStateUsing(fn ($state) => $state === '(Không số)'
+                        ? new \Illuminate\Support\HtmlString('<span style="color: red; font-weight: bold">(Không số)</span>')
+                        : e($state)
+                    ),
                 Tables\Columns\TextColumn::make('document_date')
                     ->label($black('Ngày tháng'))
                     ->formatStateUsing(fn ($state, $record) => $state ? ($record->date_unverified ? ('[' . \Carbon\Carbon::parse($state)->format('d/m/Y') . ']') : \Carbon\Carbon::parse($state)->format('d/m/Y')) : ''),
@@ -687,7 +720,11 @@ class DocumentResource extends Resource
                 ->sortable(false),
             Tables\Columns\TextColumn::make('document_code')
                 ->label('Số ký hiệu')
-                ->searchable(),
+                ->searchable()
+                ->formatStateUsing(fn ($state) => $state === '(Không số)'
+                    ? new \Illuminate\Support\HtmlString('<span style="color: red; font-weight: bold">(Không số)</span>')
+                    : e($state)
+                ),
             Tables\Columns\TextColumn::make('document_date')
                 ->label('Ngày tháng')
                 ->formatStateUsing(fn ($state, $record) => $state ? ($record->date_unverified ? ('[' . \Carbon\Carbon::parse($state)->format('d/m/Y') . ']') : \Carbon\Carbon::parse($state)->format('d/m/Y')) : ''),

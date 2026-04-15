@@ -29,6 +29,10 @@ class CreateDocument extends CreateRecord
             $data['security_level'] = 'thường';
         }
 
+        if (empty($data['copy_type'])) {
+            $data['copy_type'] = 'Bản chính';
+        }
+
         if (! isset($data['description']) || $data['description'] === null) {
             $data['description'] = '';
         }

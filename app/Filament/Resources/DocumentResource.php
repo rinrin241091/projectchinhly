@@ -92,16 +92,16 @@ class DocumentResource extends Resource
                         $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
                     }),
 
-                Forms\Components\Select::make('doc_type_id')
-                    ->label($fieldLabels['doc_type_id'])
-                    ->options(fn (): array => static::getRecordTypeOptionsMappedToDocTypes())
-                    ->searchable()
-                    ->preload()
-                    ->default(fn () => session('document_form_draft.doc_type_id', function () {
-                        $firstDocType = \App\Models\DocType::orderBy('id')->first();
-                        return $firstDocType?->id;
-                    }))
-                    ->required(),
+                // Forms\Components\Select::make('doc_type_id')
+                //     ->label($fieldLabels['doc_type_id'])
+                //     ->options(fn (): array => static::getRecordTypeOptionsMappedToDocTypes())
+                //     ->searchable()
+                //     ->preload()
+                //     ->default(fn () => session('document_form_draft.doc_type_id', function () {
+                //         $firstDocType = \App\Models\DocType::orderBy('id')->first();
+                //         return $firstDocType?->id;
+                //     }))
+                //     ->required(),
 
                 Forms\Components\TextInput::make('document_code')
                     ->label($fieldLabels['document_code'])
@@ -213,7 +213,7 @@ class DocumentResource extends Resource
                         'Bản chính' => 'Bản chính',
                         'Bản sao' => 'Bản sao',
                     ])
-                    ->default(fn () => session('document_form_draft.copy_type'))
+                    ->default(fn () => session('document_form_draft.copy_type', 'Bản chính'))
                     ->visible(fn () => static::isPartyOrganization()),
                 
                 Forms\Components\TextInput::make('page_number_from')
@@ -246,6 +246,12 @@ class DocumentResource extends Resource
                     ->minValue(0)
                     ->default(fn () => session('document_form_draft.file_count', 1))
                     ->visible(fn () => static::isPartyOrganization()),
+
+                Forms\Components\TextInput::make('total_pages')
+                    ->label('Số trang')
+                    ->numeric()
+                    ->minValue(0)
+                    ->default(fn () => session('document_form_draft.total_pages', 1)),
 
                 Forms\Components\TextInput::make('file_name')
                     ->label('Tên tệp tài liệu')

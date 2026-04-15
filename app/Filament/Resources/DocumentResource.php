@@ -53,32 +53,7 @@ class DocumentResource extends Resource
                                 return $archivalId ? Organization::find($archivalId)?->name : 'Chưa chọn';
                             })
                             ->visible(fn () => session()->has('selected_archival_id')),
-                        Forms\Components\Grid::make()
-                            ->columns(2)
-                            ->schema([
-                                Forms\Components\TextInput::make('document_code')
-                                    ->label($fieldLabels['document_code'] . ' *')
-                                    ->default(fn (callable $get) => $get('no_number') ? '(Không số)' : session('document_form_draft.document_code'))
-                                    ->autofocus()
-                                    ->placeholder('Nhập số, ký hiệu')
-                                    ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
-                                    ->disabled(fn (callable $get) => $get('no_number'))
-                                    ->required(fn (callable $get) => !$get('no_number'))
-                                    ->live()
-                                    ->dehydrated()
-                                    ->rule(function (callable $get) {
-                                        $recordId = request()->route('record');
-                                        if ($get('no_number')) return [];
-                                        return [
-                                            'required',
-                                            Rule::unique('documents', 'document_code')->ignore($recordId),
-                                        ];
-                                    }),
-                                Forms\Components\Checkbox::make('no_number')
-                                    ->label('Không số')
-                                    ->helperText('Tick nếu tài liệu không có số, ký hiệu.')
-                                    ->reactive(),
-                            ]),
+                        
                   
                         Forms\Components\Select::make('archive_record_id')
                             ->label('Chọn hồ sơ lưu trữ')
@@ -117,24 +92,32 @@ class DocumentResource extends Resource
                                 $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
                             }),
 
-                        Forms\Components\TextInput::make('document_code')
-                            ->label($fieldLabels['document_code'] . ' *')
-                            ->default(fn (callable $get) => $get('no_number') ? '(Không số)' : session('document_form_draft.document_code'))
-                            ->autofocus()
-                            ->placeholder('Nhập số, ký hiệu')
-                            ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
-                            ->disabled(fn (callable $get) => $get('no_number'))
-                            ->required(fn (callable $get) => !$get('no_number'))
-                            ->live()
-                            ->dehydrated()
-                            ->rule(function (callable $get) {
-                                $recordId = request()->route('record');
-                                if ($get('no_number')) return [];
-                                return [
-                                    'required',
-                                    Rule::unique('documents', 'document_code')->ignore($recordId),
-                                ];
-                            }),
+                        Forms\Components\Grid::make()
+                            ->columns(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('document_code')
+                                    ->label($fieldLabels['document_code'] . ' *')
+                                    ->default(fn (callable $get) => $get('no_number') ? '(Không số)' : session('document_form_draft.document_code'))
+                                    ->autofocus()
+                                    ->placeholder('Nhập số, ký hiệu')
+                                    ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
+                                    ->disabled(fn (callable $get) => $get('no_number'))
+                                    ->required(fn (callable $get) => !$get('no_number'))
+                                    ->live()
+                                    ->dehydrated()
+                                    ->rule(function (callable $get) {
+                                        $recordId = request()->route('record');
+                                        if ($get('no_number')) return [];
+                                        return [
+                                            'required',
+                                            Rule::unique('documents', 'document_code')->ignore($recordId),
+                                        ];
+                                    }),
+                                Forms\Components\Checkbox::make('no_number')
+                                    ->label('Không số')
+                                    ->helperText('Tick nếu tài liệu không có số, ký hiệu.')
+                                    ->reactive(),
+                            ]),
 
                         Forms\Components\DatePicker::make('document_date')
                             ->label($fieldLabels['document_date'])

@@ -49,7 +49,17 @@ class RecordTypeResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true);
+        return auth()->user()?->role === 'super_admin';
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->role === 'super_admin';
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->role === 'super_admin';
     }
 
     public static function table(Table $table): Table

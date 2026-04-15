@@ -159,10 +159,10 @@ class DocumentResource extends Resource
                         Forms\Components\Radio::make('security_level')
                             ->label('Độ mật')
                             ->options([
-                                'thường' => 'Thường',
-                                'mật' => 'Mật',
-                                'tuyệt mật' => 'Tuyệt mật',
-                                'tối mật' => 'Tối mật',
+                                'Thường' => 'Thường',
+                                'Mật' => 'Mật',
+                                'Tuyệt mật' => 'Tuyệt mật',
+                                'Tối mật' => 'Tối mật',
                             ])
                             ->default(fn () => session('document_form_draft.security_level', 'thường'))
                             ->visible(fn () => static::isPartyOrganization()),
@@ -253,8 +253,9 @@ class DocumentResource extends Resource
                             ->rule(function (callable $get) {
                                 $from = $get('page_number_from');
                                 $to = $get('page_number_to');
-                                $hasFrom = is_numeric($from);
-                                $hasTo = is_numeric($to);
+                                $hasFrom = filled($from);
+                                $hasTo = filled($to);
+                                // Only require total_pages if both from and to are filled (accept alphanumeric)
                                 if (($hasFrom && !$hasTo) || (!$hasFrom && $hasTo)) {
                                     return 'prohibited';
                                 }
@@ -263,7 +264,7 @@ class DocumentResource extends Resource
                                 }
                                 return null;
                             })
-                            ->helperText('(*) Bắt buộc nhập nếu đã nhập cả "Từ trang số" và "Đến trang số". Nếu chỉ nhập 1 trong 2 trường này thì không thể nhập "Số trang". Vui lòng nhập cả 2 hoặc để trống cả 2.'),
+                            ->helperText('(*) Bắt buộc nhập nếu đã nhập cả "Từ trang số" và "Đến trang số". Nếu chỉ nhập 1 trong 2 trường này thì không thể nhập "Số trang". Vui lòng nhập cả 2 hoặc để trống cả 2. Cho phép nhập số hoặc số kèm chữ, ví dụ: 14a.'),
 
                         Forms\Components\TextInput::make('file_name')
                             ->label('Tên tệp tài liệu')
@@ -300,7 +301,6 @@ class DocumentResource extends Resource
     {
         return $table
             ->reorderable('stt')
-
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user) return $query;
@@ -319,13 +319,25 @@ class DocumentResource extends Resource
 
                 $query->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $orgId)->select('id')->toBase());
 
+                // MariaDB does not support 'NULLS LAST', so use IS NULL for fallback
+                // Natural sort: number part, then letter part (e.g., 1 < 1a < 1b < 2)
+                // LPAD number part to 6 digits, then letter part (first char after number)
+                $naturalSort =
+                    "page_number_from IS NULL, " .
+                    "LPAD(CAST(page_number_from AS UNSIGNED), 6, '0'), " .
+                    "SUBSTRING(page_number_from, LENGTH(CAST(page_number_from AS UNSIGNED))+1, 1)";
+
                 if ($recordId = session('selected_archive_record_id')) {
                     $query->where('archive_record_id', $recordId)
-                        ->orderBy('stt');
+                        ->orderByRaw($naturalSort)
+                        ->orderBy('stt')
+                        ->orderBy('created_at');
                 } else {
-                    $query->orderBy('archive_record_id')->orderBy('stt');
+                    $query->orderBy('archive_record_id')
+                        ->orderByRaw($naturalSort)
+                        ->orderBy('stt')
+                        ->orderBy('created_at');
                 }
-                
                 return $query;
             })
 

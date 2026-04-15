@@ -42,243 +42,252 @@ class DocumentResource extends Resource
 
         return $form
             ->schema([
-                Forms\Components\Placeholder::make('selected_phong')
-                    ->label('Phông đang chọn')
-                    ->content(function () {
-                        $archivalId = session('selected_archival_id');
-                        return $archivalId ? Organization::find($archivalId)?->name : 'Chưa chọn';
-                    })
-                    ->visible(fn () => session()->has('selected_archival_id')),
-
-                Forms\Components\Select::make('archive_record_id')
-                    ->label('Chọn hồ sơ lưu trữ')
-                    ->options(function ($state, callable $set, $record) {
-                        $organizationId = $record?->archive_record?->organization?->id ?? session('selected_archival_id');
-                        if (!$organizationId) return [];
-                        
-                        return \App\Models\ArchiveRecord::where('organization_id', $organizationId)
-                            ->get()
-                            ->mapWithKeys(function ($record) {
-                                return [$record->id => $record->code . ' - ' . $record->title];
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\Hidden::make('doc_type_id')
+                            ->default(5),
+                        Forms\Components\Placeholder::make('selected_phong')
+                            ->label('Phông đang chọn')
+                            ->content(function () {
+                                $archivalId = session('selected_archival_id');
+                                return $archivalId ? Organization::find($archivalId)?->name : 'Chưa chọn';
                             })
-                            ->toArray();
-                    })
-                    ->default(fn () => session('document_form_draft.archive_record_id', session('selected_archive_record_id')))
-                    ->afterStateHydrated(function ($state, callable $set, $record) {
-                        if (!$state && $record?->organization_id) {
-                            $set('organization_id', $record->archive_record?->organization?->id);
-                        }
+                            ->visible(fn () => session()->has('selected_archival_id')),
 
-                        if ($state && ! $record) {
-                            $nextStt = Document::query()
-                                ->where('archive_record_id', $state)
-                                ->max('stt');
+                        Forms\Components\Select::make('archive_record_id')
+                            ->label('Chọn hồ sơ lưu trữ')
+                            ->options(function ($state, callable $set, $record) {
+                                $organizationId = $record?->archive_record?->organization?->id ?? session('selected_archival_id');
+                                if (!$organizationId) return [];
+                                return \App\Models\ArchiveRecord::where('organization_id', $organizationId)
+                                    ->get()
+                                    ->mapWithKeys(function ($record) {
+                                        return [$record->id => $record->code . ' - ' . $record->title];
+                                    })
+                                    ->toArray();
+                            })
+                            ->default(fn () => session('document_form_draft.archive_record_id', session('selected_archive_record_id')))
+                            ->afterStateHydrated(function ($state, callable $set, $record) {
+                                if (!$state && $record?->organization_id) {
+                                    $set('organization_id', $record->archive_record?->organization?->id);
+                                }
+                                if ($state && ! $record) {
+                                    $nextStt = Document::query()
+                                        ->where('archive_record_id', $state)
+                                        ->max('stt');
+                                    $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
+                                }
+                            })
+                            ->searchable(['code', 'title'])
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if (! $state) {
+                                    return;
+                                }
+                                $nextStt = Document::query()
+                                    ->where('archive_record_id', $state)
+                                    ->max('stt');
+                                $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
+                            }),
 
-                            $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
-                        }
-                    })
-                    ->searchable(['code', 'title'])
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if (! $state) {
-                            return;
-                        }
+                        Forms\Components\TextInput::make('document_code')
+                            ->label($fieldLabels['document_code'] . ' *')
+                            ->default(fn () => session('document_form_draft.document_code'))
+                            ->autofocus()
+                            ->placeholder('Nhập số, ký hiệu')
+                            ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
+                            ->required()
+                            ->live()
+                            ->rule(function () {
+                                $recordId = request()->route('record');
+                                return [
+                                    'required',
+                                    Rule::unique('documents', 'document_code')->ignore($recordId),
+                                ];
+                            }),
 
-                        $nextStt = Document::query()
-                            ->where('archive_record_id', $state)
-                            ->max('stt');
+                        Forms\Components\DatePicker::make('document_date')
+                            ->label($fieldLabels['document_date'])
+                            ->default(fn () => session('document_form_draft.document_date'))
+                            ->afterStateHydrated(function ($component, $record) {
+                                if ($record?->document_date) {
+                                    $date = trim($record->document_date, '[]');
+                                    $component->state($date);
+                                }
+                            }),
 
-                        $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
-                    }),
+                        Forms\Components\Checkbox::make('date_unverified')
+                            ->label('Xác minh ngày tháng (chỉ có năm)')
+                            ->helperText('Tick nếu ngày tháng chưa xác minh hoặc chỉ có năm')
+                            ->default(fn () => session('document_form_draft.date_unverified', false))
+                            ->afterStateHydrated(function ($component, $record) {
+                                if ($record?->document_date && strpos($record->document_date, '[') === 0) {
+                                    $component->state(true);
+                                }
+                            }),
 
-                // Đã bỏ trường chọn loại hồ sơ (doc_type_id) khỏi form và không required nữa
-
-                Forms\Components\TextInput::make('document_code')
-                    ->label($fieldLabels['document_code'])
-                    ->default(fn () => session('document_form_draft.document_code'))
-                    ->autofocus()
-                    ->placeholder('Nhập số, ký hiệu')
-                    ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
-                    ->required()
-                    ->live()
-                    ->rule(function () {
-                        if (static::isPartyOrganization()) {
-                            return ['required'];
-                        }
-
-                        $recordId = request()->route('record');
-
-                        return [
-                            'required',
-                            Rule::unique('documents', 'document_code')->ignore($recordId),
-                        ];
-                    }),
-
-                Forms\Components\DatePicker::make('document_date')
-                    ->label($fieldLabels['document_date'])
-                    ->default(fn () => session('document_form_draft.document_date'))
-                    ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->document_date) {
-                            $date = trim($record->document_date, '[]');
-                            $component->state($date);
-                        }
-                    }),
-
-                Forms\Components\Checkbox::make('date_unverified')
-                    ->label('Xác minh ngày tháng (chỉ có năm)')
-                    ->helperText('Tick nếu ngày tháng chưa xác minh hoặc chỉ có năm')
-                    ->default(fn () => session('document_form_draft.date_unverified', false))
-                    ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->document_date && strpos($record->document_date, '[') === 0) {
-                            $component->state(true);
-                        }
-                    }),
-
-                Forms\Components\TextInput::make('issuing_agency')
-                    ->label('Tác giả')
-                    ->default(fn () => session('document_form_draft.issuing_agency'))
-                    ->visible(fn () => static::isPartyOrganization()),
+                        Forms\Components\TextInput::make('issuing_agency')
+                            ->label('Tác giả')
+                            ->default(fn () => session('document_form_draft.issuing_agency'))
+                            ->visible(fn () => static::isPartyOrganization()),
                     
-                Forms\Components\Textarea::make('description')
-                    ->label($fieldLabels['description'])
-                    ->default(fn () => session('document_form_draft.description', ''))
-                    ->placeholder('Nhập trích yếu')
-                    ->helperText('Bắt buộc nhập trích yếu để tránh lỗi khi lưu.')
-                    ->rows(3)
-                    ->required()
-                    ->reactive()
-                    ->extraAttributes([
-                        'wire:model.live.debounce.4000ms' => 'description',
-                    ]),
+                        Forms\Components\Textarea::make('description')
+                            ->label($fieldLabels['description'] . ' *')
+                            ->default(fn () => session('document_form_draft.description', ''))
+                            ->placeholder('Nhập trích yếu')
+                            ->helperText('Bắt buộc nhập trích yếu để tránh lỗi khi lưu.')
+                            ->rows(3)
+                            ->required()
+                            ->reactive()
+                            ->extraAttributes([
+                                'wire:model.live.debounce.4000ms' => 'description',
+                            ]),
 
-                Forms\Components\TextInput::make('signer')
-                    ->label($fieldLabels['signer'])
-                    ->default(fn () => session('document_form_draft.signer'))
-                    ->visible(fn () => static::isPartyOrganization())
-                    ->dehydrated(fn () => static::isPartyOrganization()),
+                        Forms\Components\TextInput::make('signer')
+                            ->label($fieldLabels['signer'])
+                            ->default(fn () => session('document_form_draft.signer'))
+                            ->visible(fn () => static::isPartyOrganization())
+                            ->dehydrated(fn () => static::isPartyOrganization()),
 
-                Forms\Components\TextInput::make('author')
-                    ->label($fieldLabels['author'])
-                    ->default(fn () => session('document_form_draft.author'))
-                    ->visible(fn () => !static::isPartyOrganization())
-                    ->dehydrated(fn () => !static::isPartyOrganization()),
+                        Forms\Components\TextInput::make('author')
+                            ->label($fieldLabels['author'])
+                            ->default(fn () => session('document_form_draft.author'))
+                            ->visible(fn () => !static::isPartyOrganization())
+                            ->dehydrated(fn () => !static::isPartyOrganization()),
 
-                Forms\Components\Radio::make('security_level')
-                    ->label('Độ mật')
-                    ->options([
-                        'thường' => 'Thường',
-                        'mật' => 'Mật',
-                        'tuyệt mật' => 'Tuyệt mật',
-                        'tối mật' => 'Tối mật',
+                        Forms\Components\Radio::make('security_level')
+                            ->label('Độ mật')
+                            ->options([
+                                'thường' => 'Thường',
+                                'mật' => 'Mật',
+                                'tuyệt mật' => 'Tuyệt mật',
+                                'tối mật' => 'Tối mật',
+                            ])
+                            ->default(fn () => session('document_form_draft.security_level', 'thường'))
+                            ->visible(fn () => static::isPartyOrganization()),
+
+                        Forms\Components\Select::make('copy_type')
+                            ->label('Loại bản')
+                            ->options([
+                                'Bản chính' => 'Bản chính',
+                                'Bản sao' => 'Bản sao',
+                            ])
+                            ->default(fn () => session('document_form_draft.copy_type', 'Bản chính'))
+                            ->visible(fn () => static::isPartyOrganization()),
+                
+
+                        Forms\Components\TextInput::make('page_number_from')
+                            ->label('Từ trang số')
+                            ->afterStateHydrated(function ($component, $record) {
+                                if ($record?->page_number_from !== null) {
+                                    $component->state(trim($record->page_number_from));
+                                } elseif ($record?->page_number) {
+                                    [$from] = explode('-', $record->page_number . '-');
+                                    $component->state(trim($from));
+                                }
+                            })
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $from = $state;
+                                $to = $get('page_number_to');
+                                if (is_numeric($from) && is_numeric($to)) {
+                                    $fromInt = (int) $from;
+                                    $toInt = (int) $to;
+                                    if ($toInt >= $fromInt) {
+                                        $set('total_pages', $toInt - $fromInt + 1);
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('page_number_to')
+                            ->label('Đến trang số')
+                            ->afterStateHydrated(function ($component, $record) {
+                                if ($record?->page_number_to !== null) {
+                                    $component->state(trim($record->page_number_to));
+                                } elseif ($record?->page_number && strpos($record->page_number, '-') !== false) {
+                                    [, $to] = explode('-', $record->page_number . '-', 2);
+                                    if ($to !== null) {
+                                        $component->state(trim($to));
+                                    }
+                                }
+                            })
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $to = $state;
+                                $from = $get('page_number_from');
+                                if (is_numeric($from) && is_numeric($to)) {
+                                    $fromInt = (int) $from;
+                                    $toInt = (int) $to;
+                                    if ($toInt >= $fromInt) {
+                                        $set('total_pages', $toInt - $fromInt + 1);
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('file_count')
+                            ->label('Số lượng tệp (file)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(fn () => session('document_form_draft.file_count', 1))
+                            ->visible(fn () => static::isPartyOrganization()),
+
+                        Forms\Components\TextInput::make('total_pages')
+                            ->label('Số trang *')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(fn () => session('document_form_draft.total_pages', 1))
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $from = $get('page_number_from');
+                                $to = $get('page_number_to');
+                                $hasFrom = is_numeric($from);
+                                $hasTo = is_numeric($to);
+                                if ($hasFrom && $hasTo) {
+                                    $fromInt = (int) $from;
+                                    $toInt = (int) $to;
+                                    if ($toInt >= $fromInt) {
+                                        $set('total_pages', $toInt - $fromInt + 1);
+                                    }
+                                }
+                            })
+                            ->required()
+                            ->rule(function (callable $get) {
+                                $from = $get('page_number_from');
+                                $to = $get('page_number_to');
+                                $hasFrom = is_numeric($from);
+                                $hasTo = is_numeric($to);
+                                if (($hasFrom && !$hasTo) || (!$hasFrom && $hasTo)) {
+                                    return 'prohibited';
+                                }
+                                if ($hasFrom && $hasTo && $get('total_pages') === null) {
+                                    return 'required';
+                                }
+                                return null;
+                            })
+                            ->helperText('(*) Bắt buộc nhập nếu đã nhập cả "Từ trang số" và "Đến trang số". Nếu chỉ nhập 1 trong 2 trường này thì không thể nhập "Số trang". Vui lòng nhập cả 2 hoặc để trống cả 2.'),
+
+                        Forms\Components\TextInput::make('file_name')
+                            ->label('Tên tệp tài liệu')
+                            ->default(fn () => session('document_form_draft.file_name'))
+                            ->visible(fn () => static::isPartyOrganization()),
+
+                        Forms\Components\Textarea::make('keywords')
+                            ->label('Từ khóa')
+                            ->default(fn () => session('document_form_draft.keywords'))
+                            ->rows(2)
+                            ->visible(fn () => static::isPartyOrganization()),
+                
+                        Forms\Components\Textarea::make('note')
+                            ->label('Ghi chú')
+                            ->default(fn () => session('document_form_draft.note'))
+                            ->rows(2),
+                
+                        // Forms\Components\FileUpload::make('file_path')
+                        //     ->label('Tệp đính kèm')
+                        //     ->directory('documents')
+                        //     ->preserveFilenames()
+                        //     ->downloadable()
+                        //     ->openable(),
                     ])
-                    ->default(fn () => session('document_form_draft.security_level', 'thường'))
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\Select::make('copy_type')
-                    ->label('Loại bản')
-                    ->options([
-                        'Bản chính' => 'Bản chính',
-                        'Bản sao' => 'Bản sao',
-                    ])
-                    ->default(fn () => session('document_form_draft.copy_type', 'Bản chính'))
-                    ->visible(fn () => static::isPartyOrganization()),
-                
-
-                Forms\Components\TextInput::make('page_number_from')
-                    ->label('Từ trang số')
-                    ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->page_number_from !== null) {
-                            $component->state(trim($record->page_number_from));
-                        } elseif ($record?->page_number) {
-                            [$from] = explode('-', $record->page_number . '-');
-                            $component->state(trim($from));
-                        }
-                    })
-                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        $from = $state;
-                        $to = $get('page_number_to');
-                        if (is_numeric($from) && is_numeric($to)) {
-                            $fromInt = (int) $from;
-                            $toInt = (int) $to;
-                            if ($toInt >= $fromInt) {
-                                $set('total_pages', $toInt - $fromInt + 1);
-                            }
-                        }
-                    }),
-
-                Forms\Components\TextInput::make('page_number_to')
-                    ->label('Đến trang số')
-                    ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->page_number_to !== null) {
-                            $component->state(trim($record->page_number_to));
-                        } elseif ($record?->page_number && strpos($record->page_number, '-') !== false) {
-                            [, $to] = explode('-', $record->page_number . '-', 2);
-                            if ($to !== null) {
-                                $component->state(trim($to));
-                            }
-                        }
-                    })
-                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        $to = $state;
-                        $from = $get('page_number_from');
-                        if (is_numeric($from) && is_numeric($to)) {
-                            $fromInt = (int) $from;
-                            $toInt = (int) $to;
-                            if ($toInt >= $fromInt) {
-                                $set('total_pages', $toInt - $fromInt + 1);
-                            }
-                        }
-                    }),
-
-                Forms\Components\TextInput::make('file_count')
-                    ->label('Số lượng tệp (file)')
-                    ->numeric()
-                    ->minValue(0)
-                    ->default(fn () => session('document_form_draft.file_count', 1))
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\TextInput::make('total_pages')
-                    ->label('Số trang')
-                    ->numeric()
-                    ->minValue(0)
-                    ->default(fn () => session('document_form_draft.total_pages', 1))
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        // Nếu người dùng xóa giá trị thì đề xuất lại nếu có thể
-                        $from = $get('page_number_from');
-                        $to = $get('page_number_to');
-                        if (is_numeric($from) && is_numeric($to)) {
-                            $fromInt = (int) $from;
-                            $toInt = (int) $to;
-                            if ($toInt >= $fromInt) {
-                                $set('total_pages', $toInt - $fromInt + 1);
-                            }
-                        }
-                    }),
-
-                Forms\Components\TextInput::make('file_name')
-                    ->label('Tên tệp tài liệu')
-                    ->default(fn () => session('document_form_draft.file_name'))
-                    ->visible(fn () => static::isPartyOrganization()),
-
-                Forms\Components\Textarea::make('keywords')
-                    ->label('Từ khóa')
-                    ->default(fn () => session('document_form_draft.keywords'))
-                    ->rows(2)
-                    ->visible(fn () => static::isPartyOrganization()),
-                
-                Forms\Components\Textarea::make('note')
-                    ->label('Ghi chú')
-                    ->default(fn () => session('document_form_draft.note'))
-                    ->rows(2),
-                
-                // Forms\Components\FileUpload::make('file_path')
-                //     ->label('Tệp đính kèm')
-                //     ->directory('documents')
-                //     ->preserveFilenames()
-                //     ->downloadable()
-                //     ->openable(),
             ]);
     }
 
@@ -391,11 +400,11 @@ class DocumentResource extends Resource
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->visible(fn() => static::canCreate()),
-                Tables\Actions\Action::make('bulkCreateDocuments')
-                    ->label('Tạo nhiều văn bản')
-                    ->icon('heroicon-o-document-text')
-                    ->url(BulkCreateDocuments::getUrl())
-                    ->visible(fn() => static::canCreate()),
+                // Tables\Actions\Action::make('bulkCreateDocuments')
+                //     ->label('Tạo nhiều văn bản')
+                //     ->icon('heroicon-o-document-text')
+                //     ->url(BulkCreateDocuments::getUrl())
+                //     ->visible(fn() => static::canCreate()),
                 Tables\Actions\Action::make('import')
                     ->label('Import')
                     ->url(static::getUrl('import'))

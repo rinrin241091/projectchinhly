@@ -23,7 +23,9 @@ class Document extends Model
                              'author', 
                              'security_level',
                              'copy_type',
-                             'page_number', 
+                             'page_number',
+                             'page_number_from',
+                             'page_number_to',
                              'total_pages',
                              'file_count',
                              'file_name',
@@ -37,6 +39,7 @@ class Document extends Model
                              'reliability_level',
                              'physical_condition',
                              'document_date',
+                             'date_unverified',
                              'note'];
     public function archive_record(): BelongsTo {
     return $this->belongsTo(ArchiveRecord::class, 'archive_record_id', 'id');

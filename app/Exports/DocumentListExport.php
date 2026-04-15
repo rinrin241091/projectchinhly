@@ -47,7 +47,7 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
             'Số TT',
             'Số, ký hiệu',
             'Ngày, tháng, năm văn bản',
-            'Tên loại và trích yếu',
+            'Trích yếu',
             'Tác giả',
             'Người ký',
             'Độ mật',
@@ -67,18 +67,18 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
             // Use merged field; fallback for legacy rows before migration
             $soKyHieu = $document->document_code
                 ?: trim(collect([$document->document_number, $document->document_symbol])->filter()->implode('/'));
-            // Merge tên loại + trích yếu
-            $tenLoaiTrichYeu = trim(collect([$document->docType->name ?? '', $document->description ?? ''])->filter()->implode(' - '));
+            // Chỉ lấy trích yếu (description), không lấy tên loại
+            $tenLoaiTrichYeu = $document->description ?? '';
             $rows[] = [
                 $rowNumber,
                 $soKyHieu,
-                $this->formatDate($document->document_date),
+                $this->formatDate($document->document_date, $document->date_unverified ?? false),
                 $tenLoaiTrichYeu,
                 $document->issuing_agency ?? '',
                 $document->signer ?: $document->author ?: '',
                 $document->security_level ?? '',
                 $document->copy_type ?? '',
-                $document->page_number ?? '',
+                $this->getExportPageNumber($document),
                 $document->total_pages ?? '',
                 $document->keywords ?? '',
                 $document->note ?? '',
@@ -108,10 +108,10 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
         foreach ($this->archiveRecord->documents as $document) {
             $rows[] = [
                 $document->document_code ?? '',
-                $this->formatDate($document->document_date),
+                $this->formatDate($document->document_date, $document->date_unverified ?? false),
                 $document->description ?? '',
                 $document->author ?: $document->signer ?: '',
-                $document->page_number ?? '',
+                $this->getExportPageNumber($document),
                 $document->note ?? '',
             ];
         }
@@ -178,12 +178,39 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
         return $this->archiveRecord->organization?->type === 'Đảng';
     }
 
-    private function formatDate($value): string
+    private function formatDate($value, bool $unverified = false): string
     {
         if (empty($value)) {
             return '';
         }
 
-        return Carbon::parse($value)->format('d/m/Y');
+        $formatted = Carbon::parse($value)->format('d/m/Y');
+
+        return $unverified ? '[' . $formatted . ']' : $formatted;
+    }
+
+    private function getExportPageNumber($document): string
+    {
+        $from = trim((string) ($document->page_number_from ?? ''));
+        $to = trim((string) ($document->page_number_to ?? ''));
+
+        if ($from !== '' && $to !== '') {
+            return $from . ' - ' . $to;
+        }
+
+        if ($from !== '') {
+            return $from;
+        }
+
+        if ($to !== '') {
+            return $to;
+        }
+
+        $pageNumber = trim((string) ($document->page_number ?? ''));
+        if ($pageNumber !== '' && strpos($pageNumber, '-') !== false) {
+            return preg_replace('/\s*-\s*/', ' - ', $pageNumber);
+        }
+
+        return $pageNumber;
     }
 }

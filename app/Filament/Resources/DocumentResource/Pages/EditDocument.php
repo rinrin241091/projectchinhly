@@ -36,18 +36,26 @@ class EditDocument extends EditRecord
         }
 
         // Merge page_number_from and page_number_to
-        $pageFrom = $data['page_number_from'] ?? null;
-        $pageTo = $data['page_number_to'] ?? null;
+        $pageFrom = isset($data['page_number_from']) ? trim($data['page_number_from']) : null;
+        $pageTo = isset($data['page_number_to']) ? trim($data['page_number_to']) : null;
+        $hasPageFrom = $pageFrom !== null && $pageFrom !== '';
+        $hasPageTo = $pageTo !== null && $pageTo !== '';
 
-        if ($pageFrom && $pageTo) {
-            $data['page_number'] = $pageFrom . '-' . $pageTo;
-        } elseif ($pageFrom) {
-            $data['page_number'] = $pageFrom;
-        } elseif ($pageTo) {
-            $data['page_number'] = $pageTo;
+        if ($hasPageFrom) {
+            $data['page_number_from'] = $pageFrom;
         }
 
-        unset($data['page_number_from'], $data['page_number_to']);
+        if ($hasPageTo) {
+            $data['page_number_to'] = $pageTo;
+        }
+
+        if ($hasPageFrom && $hasPageTo) {
+            $data['page_number'] = $pageFrom . '-' . $pageTo;
+        } elseif ($hasPageFrom) {
+            $data['page_number'] = $pageFrom;
+        } elseif ($hasPageTo) {
+            $data['page_number'] = $pageTo;
+        }
 
         return $data;
     }

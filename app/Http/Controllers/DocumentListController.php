@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\DocumentListExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelWriter;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 
@@ -100,4 +101,79 @@ class DocumentListController extends Controller
 
         return Excel::download(new DocumentListExport($archiveRecord), "{$fileName}.xlsx");
     }
-}
+    public function exportExcelBatch(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (!is_array($ids)) {
+            $ids = explode(',', (string) $ids);
+        }
+
+        $ids = array_filter(array_map('intval', $ids));
+
+        if (count($ids) === 0) {
+            abort(404, 'No archive records selected for export.');
+        }
+
+        if (count($ids) === 1) {
+            return $this->exportExcel($ids[0]);
+        }
+
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'documents_export_' . uniqid();
+        if (! mkdir($tempDir) && ! is_dir($tempDir)) {
+            abort(500, 'Unable to create temporary directory for export.');
+        }
+
+        $archiveFiles = [];
+        foreach ($ids as $id) {
+            $archiveRecord = ArchiveRecord::with(['documents.docType', 'organization', 'archiveRecordItem', 'box'])->find($id);
+            if (! $archiveRecord) {
+                continue;
+            }
+
+            $fileName = Str::of($archiveRecord->title ?? 'Danh sach tai lieu')
+                ->replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], ' ')
+                ->trim()
+                ->toString();
+
+            $filePath = $tempDir . DIRECTORY_SEPARATOR . "{$fileName}.xlsx";
+            $xlsxContent = Excel::raw(new DocumentListExport($archiveRecord), ExcelWriter::XLSX);
+            file_put_contents($filePath, $xlsxContent);
+            $archiveFiles[] = $filePath;
+        }
+
+        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'documents_export_' . uniqid() . '.zip';
+
+        if (class_exists(\ZipArchive::class)) {
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                abort(500, 'Unable to create ZIP archive.');
+            }
+
+            foreach ($archiveFiles as $filePath) {
+                $zip->addFile($filePath, basename($filePath));
+            }
+
+            $zip->close();
+        } else {
+            $source = $tempDir . DIRECTORY_SEPARATOR . '*';
+            $destination = $zipPath;
+            $command = 'powershell -NoProfile -Command "Compress-Archive -Path ' . escapeshellarg($source) . ' -DestinationPath ' . escapeshellarg($destination) . ' -Force"';
+            exec($command, $output, $result);
+
+            if ($result !== 0 || ! file_exists($zipPath)) {
+                foreach ($archiveFiles as $filePath) {
+                    @unlink($filePath);
+                }
+                @rmdir($tempDir);
+                abort(500, 'Unable to create ZIP archive via PowerShell Compress-Archive.');
+            }
+        }
+
+        foreach ($archiveFiles as $filePath) {
+            @unlink($filePath);
+        }
+        @rmdir($tempDir);
+
+        return response()->download($zipPath, 'document-exports-' . now()->format('Ymd_His') . '.zip')->deleteFileAfterSend(true);
+    }}

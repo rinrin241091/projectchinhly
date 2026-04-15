@@ -40,13 +40,28 @@ class DocumentsImport implements ToModel, WithHeadingRow, WithValidation
             ['name' => $row['doc_type_name']]
         );
 
+        $pageNumberRaw = $row['page_number'] ?? null;
+        $pageNumberFrom = null;
+        $pageNumberTo = null;
+
+        if ($pageNumberRaw !== null) {
+            $pageNumberRaw = trim((string) $pageNumberRaw);
+            if (strpos($pageNumberRaw, '-') !== false) {
+                [$pageNumberFrom, $pageNumberTo] = array_map('trim', explode('-', $pageNumberRaw, 2));
+            } else {
+                $pageNumberFrom = $pageNumberRaw;
+            }
+        }
+
         return new Document([
             'document_code' => $row['document_code'],
             'document_date' => isset($row['document_date']) ? \Carbon\Carbon::createFromFormat('m/d/Y', $row['document_date'])->format('Y-m-d') : null,
             'description' => $row['description'],
             'signer' => $row['signer'] ?? null,
             'author' => $row['author'] ?? null,
-            'page_number' => $row['page_number'] ?? null,
+            'page_number' => $pageNumberRaw,
+            'page_number_from' => $pageNumberFrom,
+            'page_number_to' => $pageNumberTo,
             'note' => $row['note'] ?? null,
             'archive_record_id' => $archiveRecord->id,
             'doc_type_id' => $docType->id,
@@ -61,7 +76,7 @@ class DocumentsImport implements ToModel, WithHeadingRow, WithValidation
             'description' => 'required|string',
             'signer' => 'nullable|string|max:255',
             'author' => 'nullable|string|max:255',
-            'page_number' => 'nullable|integer|min:0',
+            'page_number' => 'nullable|string|max:255',
             'note' => 'nullable|string',
             'archive_record_reference' => 'required|integer|min:1',
             'doc_type_name' => 'required|string|max:255',

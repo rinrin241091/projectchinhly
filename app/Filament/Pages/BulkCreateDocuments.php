@@ -108,15 +108,15 @@ class BulkCreateDocuments extends Page implements HasForms
                                     DatePicker::make('document_date')
                                         ->label('Ngày tháng văn bản'),
 
+                                    Forms\Components\Checkbox::make('date_unverified')
+                                        ->label('Xác minh ngày tháng')
+                                        ->helperText('Tick nếu chỉ có năm'),
+
                                     TextInput::make('page_number_from')
-                                        ->label('Từ trang số')
-                                        ->numeric()
-                                        ->minValue(0),
+                                        ->label('Từ trang số'),
 
                                     TextInput::make('page_number_to')
-                                        ->label('Đến trang số')
-                                        ->numeric()
-                                        ->minValue(0),
+                                        ->label('Đến trang số'),
 
                                     Select::make('security_level')
                                         ->label('Độ mật (nếu chọn)')
@@ -146,14 +146,21 @@ class BulkCreateDocuments extends Page implements HasForms
         foreach ($data['documents'] as $document) {
             $currentMaxStt++;
 
+            $pageFrom = isset($document['page_number_from']) ? trim($document['page_number_from']) : null;
+            $pageTo = isset($document['page_number_to']) ? trim($document['page_number_to']) : null;
+            $hasPageFrom = $pageFrom !== null && $pageFrom !== '';
+            $hasPageTo = $pageTo !== null && $pageTo !== '';
+
             $pageNumber = null;
-            if (!empty($document['page_number_from']) && !empty($document['page_number_to'])) {
-                $pageNumber = $document['page_number_from'] . '-' . $document['page_number_to'];
-            } elseif (!empty($document['page_number_from'])) {
-                $pageNumber = $document['page_number_from'];
-            } elseif (!empty($document['page_number_to'])) {
-                $pageNumber = $document['page_number_to'];
+            if ($hasPageFrom && $hasPageTo) {
+                $pageNumber = $pageFrom . '-' . $pageTo;
+            } elseif ($hasPageFrom) {
+                $pageNumber = $pageFrom;
+            } elseif ($hasPageTo) {
+                $pageNumber = $pageTo;
             }
+
+            $documentDate = $document['document_date'] ?? null;
 
             Document::create([
                 'archive_record_id' => $data['archive_record_id'],
@@ -161,9 +168,12 @@ class BulkCreateDocuments extends Page implements HasForms
                 'stt' => $currentMaxStt,
                 'document_code' => $document['document_code'] ?? null,
                 'description' => $document['description'] ?? '',
-                'document_date' => $document['document_date'] ?? null,
+                'document_date' => $documentDate,
+                'date_unverified' => $document['date_unverified'] ?? false,
                 'copy_type' => $document['copy_type'] ?? null,
                 'page_number' => $pageNumber,
+                'page_number_from' => $pageFrom,
+                'page_number_to' => $pageTo,
                 'security_level' => $document['security_level'] ?? 'thường',
             ]);
         }

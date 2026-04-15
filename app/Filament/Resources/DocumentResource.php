@@ -98,6 +98,9 @@ class DocumentResource extends Resource
                 Forms\Components\TextInput::make('document_code')
                     ->label($fieldLabels['document_code'])
                     ->default(fn () => session('document_form_draft.document_code'))
+                    ->autofocus()
+                    ->placeholder('Nhập số, ký hiệu')
+                    ->helperText('Bắt buộc nhập số, ký hiệu để tạo tiếp.')
                     ->required()
                     ->live()
                     ->rule(function () {
@@ -115,7 +118,23 @@ class DocumentResource extends Resource
 
                 Forms\Components\DatePicker::make('document_date')
                     ->label($fieldLabels['document_date'])
-                    ->default(fn () => session('document_form_draft.document_date')),
+                    ->default(fn () => session('document_form_draft.document_date'))
+                    ->afterStateHydrated(function ($component, $record) {
+                        if ($record?->document_date) {
+                            $date = trim($record->document_date, '[]');
+                            $component->state($date);
+                        }
+                    }),
+
+                Forms\Components\Checkbox::make('date_unverified')
+                    ->label('Xác minh ngày tháng (chỉ có năm)')
+                    ->helperText('Tick nếu ngày tháng chưa xác minh hoặc chỉ có năm')
+                    ->default(fn () => session('document_form_draft.date_unverified', false))
+                    ->afterStateHydrated(function ($component, $record) {
+                        if ($record?->document_date && strpos($record->document_date, '[') === 0) {
+                            $component->state(true);
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('issuing_agency')
                     ->label('Tác giả')
@@ -125,7 +144,37 @@ class DocumentResource extends Resource
                 Forms\Components\Textarea::make('description')
                     ->label($fieldLabels['description'])
                     ->default(fn () => session('document_form_draft.description', ''))
-                    ->rows(3),
+                    ->placeholder('Nhập trích yếu')
+                    ->helperText('Bắt buộc nhập trích yếu để tránh lỗi khi lưu.')
+                    ->rows(3)
+                    ->required()
+                    ->reactive()
+                    ->extraAttributes([
+                        'wire:model.live.debounce.4000ms' => 'description',
+                    ])
+                    ->afterStateUpdated(function ($state, callable $set, callable $get): void {
+                        $currentKeywords = $get('keywords');
+                        if ($currentKeywords) {
+                            return;
+                        }
+
+                        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $state)));
+                        if ($text === '') {
+                            return;
+                        }
+
+                        preg_match('/^\s*([\p{L}\p{N}]+)(?:\s+([\p{L}\p{N}]+))?/u', $text, $matches);
+                        if (empty($matches[1])) {
+                            return;
+                        }
+
+                        $suggestion = $matches[1];
+                        if (!empty($matches[2])) {
+                            $suggestion .= ' ' . $matches[2];
+                        }
+
+                        $set('keywords', $suggestion);
+                    }),
 
                 Forms\Components\TextInput::make('signer')
                     ->label($fieldLabels['signer'])
@@ -161,34 +210,27 @@ class DocumentResource extends Resource
                 
                 Forms\Components\TextInput::make('page_number_from')
                     ->label('Từ trang số')
-                    ->numeric()
-                    ->minValue(0)
                     ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->page_number) {
+                        if ($record?->page_number_from !== null) {
+                            $component->state(trim($record->page_number_from));
+                        } elseif ($record?->page_number) {
                             [$from] = explode('-', $record->page_number . '-');
-                            $component->state((int) $from);
+                            $component->state(trim($from));
                         }
                     }),
 
                 Forms\Components\TextInput::make('page_number_to')
                     ->label('Đến trang số')
-                    ->numeric()
-                    ->minValue(0)
                     ->afterStateHydrated(function ($component, $record) {
-                        if ($record?->page_number && strpos($record->page_number, '-') !== false) {
+                        if ($record?->page_number_to !== null) {
+                            $component->state(trim($record->page_number_to));
+                        } elseif ($record?->page_number && strpos($record->page_number, '-') !== false) {
                             [, $to] = explode('-', $record->page_number . '-', 2);
-                            if ($to) {
-                                $component->state((int) $to);
+                            if ($to !== null) {
+                                $component->state(trim($to));
                             }
                         }
                     }),
-
-                Forms\Components\TextInput::make('total_pages')
-                    ->label('Số trang')
-                    ->numeric()
-                    ->minValue(0)
-                    ->default(fn () => session('document_form_draft.total_pages'))
-                    ->visible(fn () => static::isPartyOrganization()),
 
                 Forms\Components\TextInput::make('file_count')
                     ->label('Số lượng tệp (file)')
@@ -222,9 +264,15 @@ class DocumentResource extends Resource
             ]);
     }
 
+    public static function canReorder(): bool
+    {
+        return static::canEdit(null);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
+            ->reorderable('stt')
 
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
@@ -245,7 +293,10 @@ class DocumentResource extends Resource
                 $query->whereIn('archive_record_id', ArchiveRecord::where('organization_id', $orgId)->select('id')->toBase());
 
                 if ($recordId = session('selected_archive_record_id')) {
-                    $query->where('archive_record_id', $recordId);
+                    $query->where('archive_record_id', $recordId)
+                        ->orderBy('stt');
+                } else {
+                    $query->orderBy('archive_record_id')->orderBy('stt');
                 }
                 
                 return $query;
@@ -256,6 +307,56 @@ class DocumentResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('moveUp')
+                    ->label('Di chuyển lên')
+                    ->icon('heroicon-o-arrow-up')
+                    ->action(function (Document $record) {
+                        $previous = Document::query()
+                            ->where('archive_record_id', $record->archive_record_id)
+                            ->where('stt', '<', $record->stt)
+                            ->orderByDesc('stt')
+                            ->orderByDesc('id')
+                            ->first();
+
+                        if (! $previous) {
+                            return;
+                        }
+
+                        \DB::transaction(function () use ($record, $previous) {
+                            $temp = $record->stt;
+                            $record->stt = $previous->stt;
+                            $previous->stt = $temp;
+                            $record->save();
+                            $previous->save();
+                        });
+                    })
+                    ->visible(fn (?Document $record) => $record?->archive_record_id !== null),
+
+                Tables\Actions\Action::make('moveDown')
+                    ->label('Di chuyển xuống')
+                    ->icon('heroicon-o-arrow-down')
+                    ->action(function (Document $record) {
+                        $next = Document::query()
+                            ->where('archive_record_id', $record->archive_record_id)
+                            ->where('stt', '>', $record->stt)
+                            ->orderBy('stt')
+                            ->orderBy('id')
+                            ->first();
+
+                        if (! $next) {
+                            return;
+                        }
+
+                        \DB::transaction(function () use ($record, $next) {
+                            $temp = $record->stt;
+                            $record->stt = $next->stt;
+                            $next->stt = $temp;
+                            $record->save();
+                            $next->save();
+                        });
+                    })
+                    ->visible(fn (?Document $record) => $record?->archive_record_id !== null),
+
                 Tables\Actions\EditAction::make()
                     ->visible(fn() => static::canEdit(null)),
                 Tables\Actions\DeleteAction::make()
@@ -278,8 +379,9 @@ class DocumentResource extends Resource
                     ->label('Xuất Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->form([
-                        Forms\Components\Select::make('archive_record_id')
+                        Forms\Components\Select::make('archive_record_ids')
                             ->label('Chọn hồ sơ để xuất')
+                            ->multiple()
                             ->options(function () {
                                 $archiveRecordItemId = session('selected_archive_record_item_id');
                                 $organizationId = session('selected_archival_id');
@@ -298,12 +400,12 @@ class DocumentResource extends Resource
                                     ->mapWithKeys(fn ($record) => [$record->id => trim(collect([$record->code, $record->title])->filter()->implode(' - '))])
                                     ->toArray();
                             })
-                            ->default(fn () => session('selected_archive_record_id'))
+                            ->default(fn () => session('selected_archive_record_id') ? [session('selected_archive_record_id')] : [])
                             ->searchable()
                             ->preload()
                             ->required(),
                     ])
-                    ->action(fn (array $data) => redirect(route('archive-records.documents.export-excel', $data['archive_record_id'])))
+                    ->action(fn (array $data) => redirect(route('archive-records.documents.export-excel-batch', ['ids' => $data['archive_record_ids']])))
                     ->visible(fn () => session()->has('selected_archival_id') && static::canExport()),
                 //các nút chức năng trên phần header table
  /*NÚT CHỌN ML*/Tables\Actions\Action::make('chonMucLuc')
@@ -480,13 +582,15 @@ class DocumentResource extends Resource
             return [
                 Tables\Columns\TextColumn::make('id')
                     ->label($black('Số TT'))
-                    ->sortable(),
+                    ->rowIndex()
+                    ->sortable(false),
                 Tables\Columns\TextColumn::make('document_code')
                     ->label($black('Số, ký hiệu'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('document_date')
                     ->label($black('Ngày tháng'))
-                    ->date('d/m/Y'),
+                    ->formatStateUsing(fn ($state, $record) => $state ? ($record->date_unverified ? ('[' . \Carbon\Carbon::parse($state)->format('d/m/Y') . ']') : \Carbon\Carbon::parse($state)->format('d/m/Y')) : ''),
+
                 Tables\Columns\TextColumn::make('docType.name')
                     ->label($black('Tên loại và trích yếu'))
                     ->formatStateUsing(fn ($state, $record) => trim(collect([$state, $record->description])->filter()->implode(' - ')))
@@ -501,8 +605,12 @@ class DocumentResource extends Resource
                     ->label($black('Độ mật')),
                 Tables\Columns\TextColumn::make('copy_type')
                     ->label($black('Loại bản')),
-                Tables\Columns\TextColumn::make('page_number')
-                    ->label($black('Trang số')),
+                Tables\Columns\TextColumn::make('page_number_from')
+                    ->label($black('Từ trang số'))
+                    ->formatStateUsing(fn ($state, $record) => $state ?: ($record->page_number && strpos($record->page_number, '-') === false ? $record->page_number : trim(explode('-', $record->page_number . '-', 2)[0] ?? ''))),
+                Tables\Columns\TextColumn::make('page_number_to')
+                    ->label($black('Đến trang số'))
+                    ->formatStateUsing(fn ($state, $record) => $state ?: (strpos($record->page_number ?? '', '-') !== false ? trim(explode('-', $record->page_number . '-', 2)[1] ?? '') : '')),
                 Tables\Columns\TextColumn::make('total_pages')
                     ->label($black('Số trang')),
                 Tables\Columns\TextColumn::make('keywords')
@@ -524,13 +632,14 @@ class DocumentResource extends Resource
         return [
             Tables\Columns\TextColumn::make('stt')
                 ->label('STT')
-                ->sortable(),
+                ->rowIndex()
+                ->sortable(false),
             Tables\Columns\TextColumn::make('document_code')
                 ->label('Số ký hiệu')
                 ->searchable(),
             Tables\Columns\TextColumn::make('document_date')
                 ->label('Ngày tháng')
-                ->date('d/m/Y'),
+                ->formatStateUsing(fn ($state, $record) => $state ? ($record->date_unverified ? ('[' . \Carbon\Carbon::parse($state)->format('d/m/Y') . ']') : \Carbon\Carbon::parse($state)->format('d/m/Y')) : ''),
             Tables\Columns\TextColumn::make('description')
                 ->label('Trích yếu')
                 ->limit(50),
@@ -541,8 +650,12 @@ class DocumentResource extends Resource
             Tables\Columns\TextColumn::make('author')
                 ->label('Tác giả')
                 ->formatStateUsing(fn ($state, $record) => $state ?: $record->signer),
-            Tables\Columns\TextColumn::make('page_number')
-                ->label('Tờ số'),
+            Tables\Columns\TextColumn::make('page_number_from')
+                ->label('Từ trang số')
+                ->formatStateUsing(fn ($state, $record) => $state ?: ($record->page_number && strpos($record->page_number, '-') === false ? $record->page_number : trim(explode('-', $record->page_number . '-', 2)[0] ?? ''))),
+            Tables\Columns\TextColumn::make('page_number_to')
+                ->label('Đến trang số')
+                ->formatStateUsing(fn ($state, $record) => $state ?: (strpos($record->page_number ?? '', '-') !== false ? trim(explode('-', $record->page_number . '-', 2)[1] ?? '') : '')),
             Tables\Columns\TextColumn::make('note')
                 ->label('Ghi chú'),
             static::makeQrColumn(),

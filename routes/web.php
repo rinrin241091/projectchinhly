@@ -45,6 +45,9 @@ Route::get('/documents/{document}/qr-preview', [DocumentQrController::class, 'pr
 Route::get('/archive-records/{id}/documents/export-excel', [DocumentListController::class, 'exportExcel'])
     ->name('archive-records.documents.export-excel');
 
+Route::get('/archive-records/documents/export-excel', [DocumentListController::class, 'exportExcelBatch'])
+    ->name('archive-records.documents.export-excel-batch');
+
 Route::post('/archive-record-items/{id}/update-page-num', [ArchiveRecordPrintController::class, 'updatePageNum'])
     ->name('archive-record-items.update-page-num');
 

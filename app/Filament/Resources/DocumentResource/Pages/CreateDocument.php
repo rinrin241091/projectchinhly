@@ -32,29 +32,42 @@ class CreateDocument extends CreateRecord
             $data['description'] = '';
         }
 
-        // Auto-calculate STT from DB
+        // Auto-calculate STT by session, reset to 1 for a new archive record
         $archiveRecordId = $data['archive_record_id'] ?? null;
+        $previousArchiveId = session('document_form_draft.archive_record_id');
+        $previousStt = session('document_form_draft.stt') ?? 0;
+
         if ($archiveRecordId) {
-            $currentMaxStt = \App\Models\Document::query()
-                ->where('archive_record_id', $archiveRecordId)
-                ->max('stt') ?: 0;
-            $data['stt'] = (int) $currentMaxStt + 1;
+            if ($archiveRecordId === $previousArchiveId) {
+                $data['stt'] = (int) $previousStt + 1;
+            } else {
+                $data['stt'] = 1;
+            }
         }
 
         // Merge page_number_from and page_number_to
-        $pageFrom = $data['page_number_from'] ?? null;
-        $pageTo = $data['page_number_to'] ?? null;
+        $pageFrom = isset($data['page_number_from']) ? trim($data['page_number_from']) : null;
+        $pageTo = isset($data['page_number_to']) ? trim($data['page_number_to']) : null;
+        $hasPageFrom = $pageFrom !== null && $pageFrom !== '';
+        $hasPageTo = $pageTo !== null && $pageTo !== '';
 
-        if ($pageFrom && $pageTo) {
+        if ($hasPageFrom) {
+            $data['page_number_from'] = $pageFrom;
+        }
+
+        if ($hasPageTo) {
+            $data['page_number_to'] = $pageTo;
+        }
+
+        if ($hasPageFrom && $hasPageTo) {
             $data['page_number'] = $pageFrom . '-' . $pageTo;
-        } elseif ($pageFrom) {
+        } elseif ($hasPageFrom) {
             $data['page_number'] = $pageFrom;
-        } elseif ($pageTo) {
+        } elseif ($hasPageTo) {
             $data['page_number'] = $pageTo;
         }
 
-        unset($data['page_number_from'], $data['page_number_to']);
-
+        // Keep raw date in DB; use date_unverified flag for display.
         return $data;
     }
 
@@ -68,6 +81,7 @@ class CreateDocument extends CreateRecord
             'stt' => $record->stt,
             'document_code' => $record->document_code,
             'document_date' => $record->document_date,
+            'date_unverified' => $record->date_unverified,
             'issuing_agency' => $record->issuing_agency,
             'description' => $record->description,
             'signer' => $record->signer,
@@ -75,6 +89,8 @@ class CreateDocument extends CreateRecord
             'security_level' => $record->security_level ?: 'thường',
             'copy_type' => $record->copy_type,
             'page_number' => $record->page_number,
+            'page_number_from' => $record->page_number_from,
+            'page_number_to' => $record->page_number_to,
             'total_pages' => $record->total_pages,
             'file_count' => $record->file_count,
             'file_name' => $record->file_name,

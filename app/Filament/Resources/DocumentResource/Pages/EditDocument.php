@@ -21,14 +21,7 @@ class EditDocument extends EditRecord
     {
         // Ensure doc_type_id is set before updating the record
         if (empty($data['doc_type_id'])) {
-            $firstDocType = \App\Models\DocType::orderBy('id')->first();
-            if (!$firstDocType) {
-                $firstDocType = \App\Models\DocType::create([
-                    'name' => 'Văn bản thường',
-                    'description' => 'Loại tài liệu mặc định'
-                ]);
-            }
-            $data['doc_type_id'] = $firstDocType->id;
+            $data['doc_type_id'] = 5; // Mặc định là id=5 (Mặc định)
         }
 
         if (! isset($data['description']) || $data['description'] === null) {

@@ -92,16 +92,7 @@ class DocumentResource extends Resource
                         $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
                     }),
 
-                // Forms\Components\Select::make('doc_type_id')
-                //     ->label($fieldLabels['doc_type_id'])
-                //     ->options(fn (): array => static::getRecordTypeOptionsMappedToDocTypes())
-                //     ->searchable()
-                //     ->preload()
-                //     ->default(fn () => session('document_form_draft.doc_type_id', function () {
-                //         $firstDocType = \App\Models\DocType::orderBy('id')->first();
-                //         return $firstDocType?->id;
-                //     }))
-                //     ->required(),
+                // Đã bỏ trường chọn loại hồ sơ (doc_type_id) khỏi form và không required nữa
 
                 Forms\Components\TextInput::make('document_code')
                     ->label($fieldLabels['document_code'])
@@ -159,30 +150,7 @@ class DocumentResource extends Resource
                     ->reactive()
                     ->extraAttributes([
                         'wire:model.live.debounce.4000ms' => 'description',
-                    ])
-                    ->afterStateUpdated(function ($state, callable $set, callable $get): void {
-                        $currentKeywords = $get('keywords');
-                        if ($currentKeywords) {
-                            return;
-                        }
-
-                        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $state)));
-                        if ($text === '') {
-                            return;
-                        }
-
-                        preg_match('/^\s*([\p{L}\p{N}]+)(?:\s+([\p{L}\p{N}]+))?/u', $text, $matches);
-                        if (empty($matches[1])) {
-                            return;
-                        }
-
-                        $suggestion = $matches[1];
-                        if (!empty($matches[2])) {
-                            $suggestion .= ' ' . $matches[2];
-                        }
-
-                        $set('keywords', $suggestion);
-                    }),
+                    ]),
 
                 Forms\Components\TextInput::make('signer')
                     ->label($fieldLabels['signer'])
@@ -216,6 +184,7 @@ class DocumentResource extends Resource
                     ->default(fn () => session('document_form_draft.copy_type', 'Bản chính'))
                     ->visible(fn () => static::isPartyOrganization()),
                 
+
                 Forms\Components\TextInput::make('page_number_from')
                     ->label('Từ trang số')
                     ->afterStateHydrated(function ($component, $record) {
@@ -224,6 +193,17 @@ class DocumentResource extends Resource
                         } elseif ($record?->page_number) {
                             [$from] = explode('-', $record->page_number . '-');
                             $component->state(trim($from));
+                        }
+                    })
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        $from = $state;
+                        $to = $get('page_number_to');
+                        if (is_numeric($from) && is_numeric($to)) {
+                            $fromInt = (int) $from;
+                            $toInt = (int) $to;
+                            if ($toInt >= $fromInt) {
+                                $set('total_pages', $toInt - $fromInt + 1);
+                            }
                         }
                     }),
 
@@ -236,6 +216,17 @@ class DocumentResource extends Resource
                             [, $to] = explode('-', $record->page_number . '-', 2);
                             if ($to !== null) {
                                 $component->state(trim($to));
+                            }
+                        }
+                    })
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        $to = $state;
+                        $from = $get('page_number_from');
+                        if (is_numeric($from) && is_numeric($to)) {
+                            $fromInt = (int) $from;
+                            $toInt = (int) $to;
+                            if ($toInt >= $fromInt) {
+                                $set('total_pages', $toInt - $fromInt + 1);
                             }
                         }
                     }),
@@ -251,7 +242,20 @@ class DocumentResource extends Resource
                     ->label('Số trang')
                     ->numeric()
                     ->minValue(0)
-                    ->default(fn () => session('document_form_draft.total_pages', 1)),
+                    ->default(fn () => session('document_form_draft.total_pages', 1))
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        // Nếu người dùng xóa giá trị thì đề xuất lại nếu có thể
+                        $from = $get('page_number_from');
+                        $to = $get('page_number_to');
+                        if (is_numeric($from) && is_numeric($to)) {
+                            $fromInt = (int) $from;
+                            $toInt = (int) $to;
+                            if ($toInt >= $fromInt) {
+                                $set('total_pages', $toInt - $fromInt + 1);
+                            }
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('file_name')
                     ->label('Tên tệp tài liệu')
@@ -269,12 +273,12 @@ class DocumentResource extends Resource
                     ->default(fn () => session('document_form_draft.note'))
                     ->rows(2),
                 
-                Forms\Components\FileUpload::make('file_path')
-                    ->label('Tệp đính kèm')
-                    ->directory('documents')
-                    ->preserveFilenames()
-                    ->downloadable()
-                    ->openable(),
+                // Forms\Components\FileUpload::make('file_path')
+                //     ->label('Tệp đính kèm')
+                //     ->directory('documents')
+                //     ->preserveFilenames()
+                //     ->downloadable()
+                //     ->openable(),
             ]);
     }
 

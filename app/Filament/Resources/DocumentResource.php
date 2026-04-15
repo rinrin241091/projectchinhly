@@ -675,9 +675,8 @@ class DocumentResource extends Resource
                     ->label($black('Ngày tháng'))
                     ->formatStateUsing(fn ($state, $record) => $state ? ($record->date_unverified ? ('[' . \Carbon\Carbon::parse($state)->format('d/m/Y') . ']') : \Carbon\Carbon::parse($state)->format('d/m/Y')) : ''),
 
-                Tables\Columns\TextColumn::make('docType.name')
+                Tables\Columns\TextColumn::make('description')
                     ->label($black('Tên loại và trích yếu'))
-                    ->formatStateUsing(fn ($state, $record) => trim(collect([$state, $record->description])->filter()->implode(' - ')))
                     ->limit(100)
                     ->wrap(),
                 Tables\Columns\TextColumn::make('issuing_agency')

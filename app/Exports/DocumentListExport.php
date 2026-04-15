@@ -123,17 +123,20 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+                $sheet->getParent()->getDefaultStyle()->getFont()->setName('Times New Roman');
+                $sheet->getStyle($sheet->calculateWorksheetDimension())->getFont()->setName('Times New Roman');
+
                 if (! $this->isPartyOrganization()) {
                     return;
                 }
 
-                $sheet = $event->sheet->getDelegate();
                 $lastRow = max(5, 4 + $this->archiveRecord->documents->count());
 
                 // Merge and style title row
                 $sheet->mergeCells('A1:N1');
                 $sheet->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 14],
+                    'font' => ['bold' => true, 'size' => 14, 'name' => 'Times New Roman'],
                     'alignment' => [
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
                         'vertical' => Alignment::VERTICAL_CENTER,

@@ -109,7 +109,26 @@ class DocumentListController extends Controller
             $ids = explode(',', (string) $ids);
         }
 
-        $ids = array_filter(array_map('intval', $ids));
+        $hasAll = in_array('all', $ids, true) || in_array('0', $ids, true);
+
+        $ids = array_values(array_filter(array_map(function ($id) {
+            return $id === 'all' ? null : (int) $id;
+        }, $ids), fn ($id) => $id > 0));
+
+        if ($hasAll) {
+            $archiveRecordItemId = session('selected_archive_record_item_id');
+            $organizationId = session('selected_archival_id');
+
+            $query = ArchiveRecord::query();
+
+            if ($archiveRecordItemId) {
+                $query->where('archive_record_item_id', $archiveRecordItemId);
+            } elseif ($organizationId) {
+                $query->where('organization_id', $organizationId);
+            }
+
+            $ids = $query->orderBy('code')->pluck('id')->toArray();
+        }
 
         if (count($ids) === 0) {
             abort(404, 'No archive records selected for export.');

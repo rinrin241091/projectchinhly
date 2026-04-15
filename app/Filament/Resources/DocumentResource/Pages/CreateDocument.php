@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\DocumentResource\Pages;
 
 use App\Filament\Resources\DocumentResource;
+use App\Models\Document;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -32,17 +33,15 @@ class CreateDocument extends CreateRecord
             $data['description'] = '';
         }
 
-        // Auto-calculate STT by session, reset to 1 for a new archive record
+        // Auto-calculate STT based on the current archive record's existing documents.
         $archiveRecordId = $data['archive_record_id'] ?? null;
-        $previousArchiveId = session('document_form_draft.archive_record_id');
-        $previousStt = session('document_form_draft.stt') ?? 0;
 
-        if ($archiveRecordId) {
-            if ($archiveRecordId === $previousArchiveId) {
-                $data['stt'] = (int) $previousStt + 1;
-            } else {
-                $data['stt'] = 1;
-            }
+        if ($archiveRecordId && (! isset($data['stt']) || $data['stt'] === null)) {
+            $nextStt = Document::query()
+                ->where('archive_record_id', $archiveRecordId)
+                ->max('stt');
+
+            $data['stt'] = $nextStt ? (int) $nextStt + 1 : 1;
         }
 
         // Merge page_number_from and page_number_to

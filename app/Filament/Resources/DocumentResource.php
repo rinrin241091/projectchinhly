@@ -68,6 +68,14 @@ class DocumentResource extends Resource
                         if (!$state && $record?->organization_id) {
                             $set('organization_id', $record->archive_record?->organization?->id);
                         }
+
+                        if ($state && ! $record) {
+                            $nextStt = Document::query()
+                                ->where('archive_record_id', $state)
+                                ->max('stt');
+
+                            $set('stt', $nextStt ? (int) $nextStt + 1 : 1);
+                        }
                     })
                     ->searchable(['code', 'title'])
                     ->required()
@@ -311,23 +319,27 @@ class DocumentResource extends Resource
                     ->label('Di chuyển lên')
                     ->icon('heroicon-o-arrow-up')
                     ->action(function (Document $record) {
-                        $previous = Document::query()
+                        $documents = Document::query()
                             ->where('archive_record_id', $record->archive_record_id)
-                            ->where('stt', '<', $record->stt)
-                            ->orderByDesc('stt')
-                            ->orderByDesc('id')
-                            ->first();
+                            ->orderByRaw('stt IS NULL')
+                            ->orderBy('stt')
+                            ->orderBy('id')
+                            ->get();
 
-                        if (! $previous) {
+                        $index = $documents->search(fn (Document $document) => $document->id === $record->id);
+                        if ($index === false || $index === 0) {
                             return;
                         }
 
-                        \DB::transaction(function () use ($record, $previous) {
-                            $temp = $record->stt;
-                            $record->stt = $previous->stt;
-                            $previous->stt = $temp;
-                            $record->save();
-                            $previous->save();
+                        $previous = $documents[$index - 1];
+                        $documents[$index - 1] = $documents[$index];
+                        $documents[$index] = $previous;
+
+                        \DB::transaction(function () use ($documents) {
+                            foreach ($documents as $position => $document) {
+                                $document->stt = $position + 1;
+                                $document->save();
+                            }
                         });
                     })
                     ->visible(fn (?Document $record) => $record?->archive_record_id !== null),
@@ -336,23 +348,27 @@ class DocumentResource extends Resource
                     ->label('Di chuyển xuống')
                     ->icon('heroicon-o-arrow-down')
                     ->action(function (Document $record) {
-                        $next = Document::query()
+                        $documents = Document::query()
                             ->where('archive_record_id', $record->archive_record_id)
-                            ->where('stt', '>', $record->stt)
+                            ->orderByRaw('stt IS NULL')
                             ->orderBy('stt')
                             ->orderBy('id')
-                            ->first();
+                            ->get();
 
-                        if (! $next) {
+                        $index = $documents->search(fn (Document $document) => $document->id === $record->id);
+                        if ($index === false || $index === $documents->count() - 1) {
                             return;
                         }
 
-                        \DB::transaction(function () use ($record, $next) {
-                            $temp = $record->stt;
-                            $record->stt = $next->stt;
-                            $next->stt = $temp;
-                            $record->save();
-                            $next->save();
+                        $next = $documents[$index + 1];
+                        $documents[$index + 1] = $documents[$index];
+                        $documents[$index] = $next;
+
+                        \DB::transaction(function () use ($documents) {
+                            foreach ($documents as $position => $document) {
+                                $document->stt = $position + 1;
+                                $document->save();
+                            }
                         });
                     })
                     ->visible(fn (?Document $record) => $record?->archive_record_id !== null),
@@ -394,7 +410,11 @@ class DocumentResource extends Resource
                                     $query->where('organization_id', $organizationId);
                                 }
 
-                                return $query
+                                $options = [
+                                    'all' => 'Tất cả hồ sơ',
+                                ];
+
+                                return $options + $query
                                     ->orderBy('code')
                                     ->get()
                                     ->mapWithKeys(fn ($record) => [$record->id => trim(collect([$record->code, $record->title])->filter()->implode(' - '))])

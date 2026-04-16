@@ -503,6 +503,15 @@ class ArchiveRecordResource extends Resource
                             ->when($data['start_date_to'], fn(Builder $q) => $q->whereDate('start_date', '<=', $data['start_date_to']));
                     })
                     ->visible(fn () => auth()->user()?->role === 'admin'),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Trạng thái')
+                    ->options([
+                        'chưa nhập' => 'Chưa nhập',
+                        'đang nhập' => 'Đang nhập',
+                        'đã nhập' => 'Đã nhập',
+                    ])
+                    ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()

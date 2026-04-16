@@ -555,6 +555,33 @@ class ArchiveRecordResource extends Resource
                     ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('syncFromDocuments')
+                    ->label('Đồng bộ dữ liệu')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->action(function () {
+                        $organizationId = session('selected_archival_id');
+                        $query = ArchiveRecord::query();
+
+                        if ($organizationId) {
+                            $query->where('organization_id', $organizationId);
+                        }
+
+                        $synced = 0;
+                        $query->whereHas('documents')->chunk(100, function ($records) use (&$synced) {
+                            foreach ($records as $record) {
+                                $record->syncFromDocuments();
+                                $synced++;
+                            }
+                        });
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Đồng bộ thành công')
+                            ->body("Đã đồng bộ {$synced} hồ sơ.")
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn () => session()->has('selected_archival_id') && in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
                 Tables\Actions\CreateAction::make()
                     ->label('Tạo hồ sơ mới')
                     ->modalHeading('Tạo hồ sơ mới')

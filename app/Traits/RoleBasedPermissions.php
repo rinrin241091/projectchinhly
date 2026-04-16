@@ -134,7 +134,7 @@ trait RoleBasedPermissions
         }
 
         if (static::isDataEntryRole($user)) {
-            return false;
+            return in_array(static::class, static::dataEntryWritableResources(), true);
         }
         
         // Global admin can always import
@@ -162,7 +162,7 @@ trait RoleBasedPermissions
         }
 
         if (static::isDataEntryRole($user)) {
-            return false;
+            return in_array(static::class, static::dataEntryWritableResources(), true);
         }
         
         // Global admin can always export

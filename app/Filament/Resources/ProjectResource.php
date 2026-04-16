@@ -29,12 +29,12 @@ class ProjectResource extends Resource
     {
         $user = auth()->user();
 
-        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
+        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead', 'data_entry'], true);
     }
 
     public static function canCreate(): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'admin'], true);
+        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public static function canEdit(Model $record): bool
@@ -44,21 +44,12 @@ class ProjectResource extends Resource
             return false;
         }
 
-        if (in_array($user->role, ['super_admin', 'admin'], true)) {
-            return true;
-        }
-
-        // If an admin account exists, teamlead should not access project edit.
-        if (User::query()->where('role', 'admin')->exists()) {
-            return false;
-        }
-
-        return $user->role === 'teamlead' && (int) $record->team_lead_id === (int) $user->id;
+        return in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public static function canDelete(Model $record): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'admin'], true);
+        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'teamlead'], true);
     }
 
     public static function form(Form $form): Form

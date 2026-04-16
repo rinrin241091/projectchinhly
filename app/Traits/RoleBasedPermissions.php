@@ -26,13 +26,18 @@ trait RoleBasedPermissions
             \App\Filament\Resources\ArchiveRecordResource::class,
             \App\Filament\Resources\DocumentResource::class,
             \App\Filament\Resources\ArchiveRecordItemResource::class,
+            \App\Filament\Resources\ProjectResource::class,
+            \App\Filament\Resources\ArchivalResource::class,
+            \App\Filament\Resources\OrganizationResource::class,
+            \App\Filament\Resources\StorageResource::class,
+            \App\Filament\Resources\ShelveResource::class,
+            \App\Filament\Resources\BoxResource::class,
         ];
     }
 
     protected static function dataEntryWritableResources(): array
     {
         return [
-            \App\Filament\Resources\ArchiveRecordResource::class,
             \App\Filament\Resources\DocumentResource::class,
         ];
     }
@@ -74,8 +79,7 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // teamleads and data-entry staff within the org can create
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         return false;
     }
@@ -94,7 +98,7 @@ trait RoleBasedPermissions
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         return false;
     }
@@ -106,21 +110,21 @@ trait RoleBasedPermissions
             return false;
         }
         if (static::isDataEntryRole($user)) {
-            return false;
+            return in_array(static::class, static::dataEntryWritableResources(), true);
         }
         if (in_array($user->role, ['super_admin', 'admin'], true)) {
             return true;
         }
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         return false;
     }
 
     /**
      * Check if user can perform import action
-    * Only admins and data-entry staff can import (not viewers)
+    * Only admins and teamleads can import
      */
     public static function canImport(): bool
     {
@@ -140,8 +144,7 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only teamleads and data-entry staff within the org can import (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         
         return false;
@@ -149,7 +152,7 @@ trait RoleBasedPermissions
 
     /**
      * Check if user can perform export action
-    * Only admins and data-entry staff can export (not viewers)
+    * Only admins and teamleads can export
      */
     public static function canExport(): bool
     {
@@ -169,8 +172,7 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only teamleads and data-entry staff within the org can export (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         
         return false;
@@ -227,8 +229,7 @@ trait RoleBasedPermissions
         
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            // Only org teamleads and data-entry staff can create storage (not viewers)
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
         }
         
         return false;

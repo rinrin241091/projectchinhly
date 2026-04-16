@@ -46,10 +46,16 @@ class Document extends Model
     {
         static::created(function (Document $document) {
             $document->archive_record?->autoUpdateStatus();
+            $document->archive_record?->syncFromDocuments();
+        });
+
+        static::updated(function (Document $document) {
+            $document->archive_record?->syncFromDocuments();
         });
 
         static::deleted(function (Document $document) {
             $document->archive_record?->autoUpdateStatus();
+            $document->archive_record?->syncFromDocuments();
         });
     }
 

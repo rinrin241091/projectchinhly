@@ -135,5 +135,63 @@ class ArchiveRecord extends Model
             $this->update(['status' => $newStatus]);
         }
     }
+
+    /**
+     * Sync start_date, end_date, page_count and usage_mode from child documents.
+     */
+    public function syncFromDocuments(): void
+    {
+        $documents = $this->documents()->get();
+
+        if ($documents->isEmpty()) {
+            return;
+        }
+
+        // 1. Start date = min document_date, End date = max document_date
+        $dates = $documents->pluck('document_date')->filter()->map(function ($d) {
+            $cleaned = trim((string) $d, '[]');
+            try {
+                return \Carbon\Carbon::parse($cleaned);
+            } catch (\Exception $e) {
+                return null;
+            }
+        })->filter();
+
+        $updates = [];
+
+        if ($dates->isNotEmpty()) {
+            $updates['start_date'] = $dates->min()->format('Y-m-d');
+            $updates['end_date'] = $dates->max()->format('Y-m-d');
+        }
+
+        // 2. Page count = sum of total_pages
+        $updates['page_count'] = $documents->sum(fn ($doc) => (int) $doc->total_pages);
+
+        // 3. Security level = highest among documents
+        // Hierarchy (low → high): Thường → Mật → Tuyệt mật → Tối mật
+        $securityRank = [
+            'thường' => 0,
+            'mật' => 1,
+            'tuyệt mật' => 2,
+            'tối mật' => 3,
+        ];
+
+        $securityDisplay = [
+            0 => 'Thường',
+            1 => 'Mật',
+            2 => 'Tuyệt mật',
+            3 => 'Tối mật',
+        ];
+
+        $highestRank = $documents
+            ->pluck('security_level')
+            ->filter()
+            ->map(fn ($level) => $securityRank[mb_strtolower(trim($level))] ?? 0)
+            ->max();
+
+        $updates['usage_mode'] = $securityDisplay[$highestRank ?? 0];
+
+        $this->updateQuietly($updates);
+    }
 }
 

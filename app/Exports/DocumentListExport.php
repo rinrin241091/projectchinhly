@@ -144,11 +144,25 @@ class DocumentListExport implements FromArray, ShouldAutoSize, WithTitle, WithEv
                 $sheet->getParent()->getDefaultStyle()->getFont()->setName('Times New Roman');
                 $sheet->getStyle($sheet->calculateWorksheetDimension())->getFont()->setName('Times New Roman');
 
+                $docCount = $this->archiveRecord->documents->count();
+
                 if (! $this->isPartyOrganization()) {
+                    // Normal org: date column is B, data starts at row 2
+                    $lastRow = max(2, 1 + $docCount);
+                    for ($row = 2; $row <= $lastRow; $row++) {
+                        $cell = $sheet->getCell("B{$row}");
+                        $cell->setValueExplicit($cell->getValue(), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    }
                     return;
                 }
 
-                $lastRow = max(5, 4 + $this->archiveRecord->documents->count());
+                $lastRow = max(5, 4 + $docCount);
+
+                // Force date column (C) values to text so Excel won't auto-format as date
+                for ($row = 5; $row <= $lastRow; $row++) {
+                    $cell = $sheet->getCell("C{$row}");
+                    $cell->setValueExplicit($cell->getValue(), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                }
 
                 // Merge and style title row
                 $sheet->mergeCells('A1:N1');

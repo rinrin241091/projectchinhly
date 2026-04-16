@@ -292,8 +292,15 @@ class ArchiveRecordResource extends Resource
                                 ->visible(function (callable $get) {
                                     return $get('organization_id') || session()->has('selected_archival_id');
                                 }),
-                            Forms\Components\TextInput::make('usage_mode')
+                            Forms\Components\Radio::make('usage_mode')
                                 ->label($fieldLabels['usage_mode'])
+                                ->options([
+                                    'Thường' => 'Thường',
+                                    'Mật' => 'Mật',
+                                    'Tuyệt mật' => 'Tuyệt mật',
+                                    'Tối mật' => 'Tối mật',
+                                ])
+                                ->default('Thường')
                                 ->visible(fn () => $isPartyOrganization),
                             // Forms\Components\Select::make('condition')
                             //     ->label('Tình trạng')
@@ -762,10 +769,12 @@ class ArchiveRecordResource extends Resource
                         'warning' => 'đang nhập',
                         'success' => 'đã nhập',
                     ])
-                    ->formatStateUsing(function ($state, $record) {
-                        if ($state === 'đã nhập') return 'Đã nhập';
-                        $docCount = $record->documents_count ?? $record->documents()->count();
-                        return $docCount > 0 ? 'Đang nhập' : 'Chưa nhập';
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'đã nhập' => 'Đã nhập',
+                            'đang nhập' => 'Đang nhập',
+                            default => 'Chưa nhập',
+                        };
                     })
                     ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ];
@@ -802,10 +811,12 @@ class ArchiveRecordResource extends Resource
                     'warning' => 'đang nhập',
                     'success' => 'đã nhập',
                 ])
-                ->formatStateUsing(function ($state, $record) {
-                    if ($state === 'đã nhập') return 'Đã nhập';
-                    $docCount = $record->documents_count ?? $record->documents()->count();
-                    return $docCount > 0 ? 'Đang nhập' : 'Chưa nhập';
+                ->formatStateUsing(function ($state) {
+                    return match ($state) {
+                        'đã nhập' => 'Đã nhập',
+                        'đang nhập' => 'Đang nhập',
+                        default => 'Chưa nhập',
+                    };
                 })
                 ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
         ];

@@ -504,6 +504,47 @@ class ArchiveRecordResource extends Resource
                     })
                     ->visible(fn () => auth()->user()?->role === 'admin'),
 
+                Tables\Filters\Filter::make('phong_so')
+                    ->label('Phông số')
+                    ->form([
+                        Forms\Components\TextInput::make('phong_so')
+                            ->label('Phông số')
+                            ->placeholder('Nhập phông số...'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['phong_so'] ?? null, function (Builder $q, $value) {
+                            $q->whereHas('organization', fn (Builder $inner) => $inner->where('code', 'like', '%' . trim($value) . '%'));
+                        });
+                    }),
+
+                Tables\Filters\SelectFilter::make('box_id')
+                    ->label('Số cặp (hộp)')
+                    ->relationship('box', 'code')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\Filter::make('ho_so_so')
+                    ->label('Hồ sơ số')
+                    ->form([
+                        Forms\Components\TextInput::make('ho_so_so')
+                            ->label('Hồ sơ số')
+                            ->placeholder('Nhập hồ sơ số...'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['ho_so_so'] ?? null, fn (Builder $q, $value) => $q->where('code', 'like', '%' . trim($value) . '%'));
+                    }),
+
+                Tables\Filters\Filter::make('preservation')
+                    ->label('Thời hạn bảo quản')
+                    ->form([
+                        Forms\Components\TextInput::make('preservation_duration')
+                            ->label('Thời hạn bảo quản')
+                            ->placeholder('VD: Vĩnh viễn, 50 năm...'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['preservation_duration'] ?? null, fn (Builder $q, $value) => $q->where('preservation_duration', 'like', '%' . trim($value) . '%'));
+                    }),
+
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Trạng thái')
                     ->options([

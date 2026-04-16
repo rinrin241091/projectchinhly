@@ -27,24 +27,17 @@ class ProjectResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-
-        return $user && in_array($user->role, ['super_admin', 'admin', 'teamlead', 'data_entry'], true);
+        return auth()->user() !== null;
     }
 
     public static function canCreate(): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'teamlead'], true);
+        return auth()->user() !== null;
     }
 
     public static function canEdit(Model $record): bool
     {
-        $user = auth()->user();
-        if (! $user) {
-            return false;
-        }
-
-        return in_array($user->role, ['super_admin', 'admin', 'teamlead'], true);
+        return auth()->user() !== null;
     }
 
     public static function canDelete(Model $record): bool

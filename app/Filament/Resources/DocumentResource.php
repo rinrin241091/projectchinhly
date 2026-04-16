@@ -293,6 +293,18 @@ class DocumentResource extends Resource
                             ->label('Ghi chú')
                             ->default(fn () => session('document_form_draft.note'))
                             ->rows(2),
+
+                        Forms\Components\Select::make('status')
+                            ->label('Trạng thái')
+                            ->options([
+                                'chưa nhập' => 'Chưa nhập',
+                                'đang nhập' => 'Đang nhập',
+                                'đã nhập' => 'Đã nhập',
+                            ])
+                            ->default('chưa nhập')
+                            ->disablePlaceholderSelection()
+                            ->required()
+                            ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
                 
                         // Forms\Components\FileUpload::make('file_path')
                         //     ->label('Tệp đính kèm')
@@ -423,7 +435,68 @@ class DocumentResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->visible(fn() => static::canCreate()),
+                    ->visible(fn() => static::canCreate())
+                    ->mutateFormDataUsing(function (array $data): array {
+                        if (!empty($data['no_number'])) {
+                            $data['document_code'] = '(Không số)';
+                        }
+                        if (empty($data['doc_type_id'])) {
+                            $data['doc_type_id'] = 5;
+                        }
+                        if (empty($data['security_level'])) {
+                            $data['security_level'] = 'thường';
+                        }
+                        if (empty($data['copy_type'])) {
+                            $data['copy_type'] = 'Bản chính';
+                        }
+                        if (!isset($data['description']) || $data['description'] === null) {
+                            $data['description'] = '';
+                        }
+                        $archiveRecordId = $data['archive_record_id'] ?? null;
+                        if ($archiveRecordId && (!isset($data['stt']) || $data['stt'] === null)) {
+                            $nextStt = Document::query()
+                                ->where('archive_record_id', $archiveRecordId)
+                                ->max('stt');
+                            $data['stt'] = $nextStt ? (int) $nextStt + 1 : 1;
+                        }
+                        $pageFrom = isset($data['page_number_from']) ? trim($data['page_number_from']) : null;
+                        $pageTo = isset($data['page_number_to']) ? trim($data['page_number_to']) : null;
+                        if ($pageFrom) $data['page_number_from'] = $pageFrom;
+                        if ($pageTo) $data['page_number_to'] = $pageTo;
+                        if ($pageFrom && $pageTo) {
+                            $data['page_number'] = $pageFrom . '-' . $pageTo;
+                        } elseif ($pageFrom) {
+                            $data['page_number'] = $pageFrom;
+                        } elseif ($pageTo) {
+                            $data['page_number'] = $pageTo;
+                        }
+                        if (empty($data['status'])) {
+                            $data['status'] = 'chưa nhập';
+                        }
+                        return $data;
+                    })
+                    ->after(function ($record) {
+                        session(['document_form_draft' => [
+                            'archive_record_id' => $record->archive_record_id,
+                            'doc_type_id' => $record->doc_type_id,
+                            'document_code' => $record->document_code,
+                            'document_date' => $record->document_date,
+                            'date_unverified' => $record->date_unverified,
+                            'issuing_agency' => $record->issuing_agency,
+                            'description' => $record->description,
+                            'signer' => $record->signer,
+                            'author' => $record->author,
+                            'security_level' => $record->security_level ?: 'thường',
+                            'copy_type' => $record->copy_type,
+                            'page_number_from' => $record->page_number_from,
+                            'page_number_to' => $record->page_number_to,
+                            'total_pages' => $record->total_pages,
+                            'file_count' => $record->file_count,
+                            'file_name' => $record->file_name,
+                            'keywords' => $record->keywords,
+                            'note' => $record->note,
+                        ]]);
+                    }),
                 // Tables\Actions\Action::make('bulkCreateDocuments')
                 //     ->label('Tạo nhiều văn bản')
                 //     ->icon('heroicon-o-document-text')
@@ -480,7 +553,8 @@ class DocumentResource extends Resource
                                 $archivalId = session('selected_archival_id');
                                 if (!$archivalId) return [];
                                 return \App\Models\ArchiveRecordItem::where('organization_id', $archivalId)
-                                    ->pluck('title', 'id')
+                                    ->get()
+                                    ->mapWithKeys(fn ($item) => [$item->id => $item->id . ' - ' . $item->title])
                                     ->toArray();
                             })
                             ->searchable()
@@ -691,6 +765,15 @@ class DocumentResource extends Resource
                 Tables\Columns\TextColumn::make('file_name')
                     ->label($black('Tên tệp tài liệu')),
                 static::makeQrColumn(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->label($black('Trạng thái'))
+                    ->colors([
+                        'danger' => 'chưa nhập',
+                        'warning' => 'đang nhập',
+                        'success' => 'đã nhập',
+                    ])
+                    ->formatStateUsing(fn ($state) => ucfirst($state ?? 'chưa nhập'))
+                    ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ];
         }
 
@@ -729,6 +812,15 @@ class DocumentResource extends Resource
             Tables\Columns\TextColumn::make('note')
                 ->label('Ghi chú'),
             static::makeQrColumn(),
+            Tables\Columns\BadgeColumn::make('status')
+                ->label('Trạng thái')
+                ->colors([
+                    'danger' => 'chưa nhập',
+                    'warning' => 'đang nhập',
+                    'success' => 'đã nhập',
+                ])
+                ->formatStateUsing(fn ($state) => ucfirst($state ?? 'chưa nhập'))
+                ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Ngày tạo')
                 ->dateTime('d/m/Y H:i'),

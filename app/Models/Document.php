@@ -40,7 +40,8 @@ class Document extends Model
                              'physical_condition',
                              'document_date',
                              'date_unverified',
-                             'note'];
+                             'note',
+                             'status'];
     public function archive_record(): BelongsTo {
     return $this->belongsTo(ArchiveRecord::class, 'archive_record_id', 'id');
 }

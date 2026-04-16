@@ -54,23 +54,20 @@ class ShelveResource extends Resource
                 $user = auth()->user();
                 if (!$user) return $query;
                 
-                // Admin/teamlead can see everything - no filtering
-                if (in_array($user->role, ['admin', 'super_admin', 'teamlead'], true)) {
-                    return $query;
+                $orgId = session('selected_archival_id');
+                if (!$orgId) {
+                    return $query->whereRaw('1 = 0');
                 }
-                
-                // Non-admin: must select an organization and only see that org's data
-                if ($orgId = session('selected_archival_id')) {
-                    if (!$user->hasOrganization($orgId)) {
-                        return $query->whereRaw('1 = 0');
-                    }
-                    // Get the archival from organization
-                    $archival = \App\Models\Organization::find($orgId)?->archival;
-                    if ($archival) {
-                        $query->whereIn('storage_id', \App\Models\Storage::where('archival_id', $archival->id)->select('id')->toBase());
-                    } else {
-                        return $query->whereRaw('1 = 0');
-                    }
+
+                // Non-admin: check org membership
+                if (!in_array($user->role, ['admin', 'super_admin', 'teamlead'], true) && !$user->hasOrganization($orgId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                // Filter shelves by the selected organization's archival
+                $archival = \App\Models\Organization::find($orgId)?->archival;
+                if ($archival) {
+                    $query->whereIn('storage_id', \App\Models\Storage::where('archival_id', $archival->id)->select('id')->toBase());
                 } else {
                     return $query->whereRaw('1 = 0');
                 }

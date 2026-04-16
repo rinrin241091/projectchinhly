@@ -650,6 +650,25 @@ class ArchiveRecordResource extends Resource
                     ->url(fn ($record) => route('archive-records.documents', $record->id))
                     ->openUrlInNewTab()
                     ->requiresConfirmation(false),
+                Tables\Actions\Action::make('changeStatus')
+                    ->label('Đổi trạng thái')
+                    ->icon('heroicon-o-check-circle')
+                    ->form([
+                        Forms\Components\Select::make('status')
+                            ->label('Trạng thái')
+                            ->options([
+                                'chưa nhập' => 'Chưa nhập',
+                                'đang nhập' => 'Đang nhập',
+                                'đã nhập' => 'Đã nhập',
+                            ])
+                            ->default(fn ($record) => $record->status ?? 'chưa nhập')
+                            ->disablePlaceholderSelection()
+                            ->required(),
+                    ])
+                    ->action(function (\App\Models\ArchiveRecord $record, array $data) {
+                        $record->update(['status' => $data['status']]);
+                    })
+                    ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
                 // Tables\Actions\Action::make('printReceipt')
                 //     ->label('In phiếu tin')
                 //     ->modalHeading('In phiếu tin')
@@ -736,6 +755,19 @@ class ArchiveRecordResource extends Resource
                 Tables\Columns\TextColumn::make('note')
                     ->label($black('Ghi chú'))
                     ->wrap(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->label($black('Trạng thái'))
+                    ->colors([
+                        'danger' => 'chưa nhập',
+                        'warning' => 'đang nhập',
+                        'success' => 'đã nhập',
+                    ])
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($state === 'đã nhập') return 'Đã nhập';
+                        $docCount = $record->documents_count ?? $record->documents()->count();
+                        return $docCount > 0 ? 'Đang nhập' : 'Chưa nhập';
+                    })
+                    ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ];
         }
 
@@ -763,6 +795,19 @@ class ArchiveRecordResource extends Resource
             Tables\Columns\TextColumn::make('page_count')->label('Số lượng tờ'),
             Tables\Columns\TextColumn::make('archiveRecordItem.title')->label('Mục lục'),
             Tables\Columns\TextColumn::make('note')->label('Ghi chú')->wrap(),
+            Tables\Columns\BadgeColumn::make('status')
+                ->label('Trạng thái')
+                ->colors([
+                    'danger' => 'chưa nhập',
+                    'warning' => 'đang nhập',
+                    'success' => 'đã nhập',
+                ])
+                ->formatStateUsing(function ($state, $record) {
+                    if ($state === 'đã nhập') return 'Đã nhập';
+                    $docCount = $record->documents_count ?? $record->documents()->count();
+                    return $docCount > 0 ? 'Đang nhập' : 'Chưa nhập';
+                })
+                ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
         ];
     }
 

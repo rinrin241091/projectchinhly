@@ -35,7 +35,8 @@ class ArchiveRecord extends Model
                            'description',
                            'language',
                            'handwritten',
-                           'usage_mode'];
+                           'usage_mode',
+                           'status'];
     public function organization(): BelongsTo {
         return $this->belongsTo(Organization::class);
     }
@@ -115,6 +116,24 @@ class ArchiveRecord extends Model
         $userCode = trim((string) $record->code);
 
         return "{$orgCode}-{$year}-{$userCode}";
+    }
+
+    /**
+     * Auto-update status based on document count.
+     * Only updates if current status is not 'đã nhập' (manually set by teamlead).
+     */
+    public function autoUpdateStatus(): void
+    {
+        if ($this->status === 'đã nhập') {
+            return;
+        }
+
+        $docCount = $this->documents()->count();
+        $newStatus = $docCount > 0 ? 'đang nhập' : 'chưa nhập';
+
+        if ($this->status !== $newStatus) {
+            $this->update(['status' => $newStatus]);
+        }
     }
 }
 

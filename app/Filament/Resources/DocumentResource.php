@@ -294,18 +294,6 @@ class DocumentResource extends Resource
                             ->default(fn () => session('document_form_draft.note'))
                             ->rows(2),
 
-                        Forms\Components\Select::make('status')
-                            ->label('Trạng thái')
-                            ->options([
-                                'chưa nhập' => 'Chưa nhập',
-                                'đang nhập' => 'Đang nhập',
-                                'đã nhập' => 'Đã nhập',
-                            ])
-                            ->default('chưa nhập')
-                            ->disablePlaceholderSelection()
-                            ->required()
-                            ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
-                
                         // Forms\Components\FileUpload::make('file_path')
                         //     ->label('Tệp đính kèm')
                         //     ->directory('documents')
@@ -469,9 +457,6 @@ class DocumentResource extends Resource
                             $data['page_number'] = $pageFrom;
                         } elseif ($pageTo) {
                             $data['page_number'] = $pageTo;
-                        }
-                        if (empty($data['status'])) {
-                            $data['status'] = 'chưa nhập';
                         }
                         return $data;
                     })
@@ -765,15 +750,6 @@ class DocumentResource extends Resource
                 Tables\Columns\TextColumn::make('file_name')
                     ->label($black('Tên tệp tài liệu')),
                 static::makeQrColumn(),
-                Tables\Columns\BadgeColumn::make('status')
-                    ->label($black('Trạng thái'))
-                    ->colors([
-                        'danger' => 'chưa nhập',
-                        'warning' => 'đang nhập',
-                        'success' => 'đã nhập',
-                    ])
-                    ->formatStateUsing(fn ($state) => ucfirst($state ?? 'chưa nhập'))
-                    ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             ];
         }
 
@@ -812,15 +788,6 @@ class DocumentResource extends Resource
             Tables\Columns\TextColumn::make('note')
                 ->label('Ghi chú'),
             static::makeQrColumn(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->label('Trạng thái')
-                ->colors([
-                    'danger' => 'chưa nhập',
-                    'warning' => 'đang nhập',
-                    'success' => 'đã nhập',
-                ])
-                ->formatStateUsing(fn ($state) => ucfirst($state ?? 'chưa nhập'))
-                ->visible(fn () => in_array(auth()->user()?->role, ['admin', 'super_admin', 'teamlead'], true)),
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Ngày tạo')
                 ->dateTime('d/m/Y H:i'),

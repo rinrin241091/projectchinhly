@@ -582,7 +582,9 @@ class DocumentResource extends Resource
                         $archivalId = session('selected_archive_record_item_id'); // lấy phông đang chọn
                         if (!$archivalId) return [];
                         return \App\Models\ArchiveRecord::where('archive_record_item_id', $archivalId)
-                            ->pluck('title', 'id')
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn ($record) => [$record->id => trim(collect([$record->code, $record->title])->filter()->implode(' - '))])
                             ->toArray();
                     })
                     ->searchable()

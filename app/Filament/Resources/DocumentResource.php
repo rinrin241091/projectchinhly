@@ -248,19 +248,6 @@ class DocumentResource extends Resource
                             ->minValue(0)
                             ->default(fn () => session('document_form_draft.total_pages', 1))
                             ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                $from = $get('page_number_from');
-                                $to = $get('page_number_to');
-                                $hasFrom = is_numeric($from);
-                                $hasTo = is_numeric($to);
-                                if ($hasFrom && $hasTo) {
-                                    $fromInt = (int) $from;
-                                    $toInt = (int) $to;
-                                    if ($toInt >= $fromInt) {
-                                        $set('total_pages', $toInt - $fromInt + 1);
-                                    }
-                                }
-                            })
                             ->required()
                             ->rule(function (callable $get) {
                                 $from = $get('page_number_from');

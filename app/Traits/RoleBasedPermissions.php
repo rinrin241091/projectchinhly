@@ -49,13 +49,13 @@ trait RoleBasedPermissions
             return false;
         }
 
-        if (in_array($user->role, ['super_admin', 'admin', 'teamlead'], true)) {
+        if (in_array($user->role, ['super_admin', 'admin', 'teamlead', 'data_entry'], true)) {
             return true;
         }
 
         $orgId = session('selected_archival_id');
         if ($orgId !== null) {
-            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead']);
+            return static::hasAnyOrgRole($user, (int) $orgId, ['teamlead', 'data_entry']);
         }
 
         return false;

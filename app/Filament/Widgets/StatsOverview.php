@@ -12,15 +12,25 @@ class StatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
+        $orgId = session('selected_archival_id');
+
+        $recordQuery = ArchiveRecord::query();
+        $documentQuery = Document::query();
+
+        if ($orgId) {
+            $recordQuery->where('organization_id', $orgId);
+            $documentQuery->whereHas('archive_record', fn ($q) => $q->where('organization_id', $orgId));
+        }
+
         return [
-            Stat::make('Tổng số hồ sơ lưu trữ', ArchiveRecord::count())
+            Stat::make('Tổng số hồ sơ lưu trữ', $recordQuery->count())
                 ->description('Tất cả hồ sơ trong hệ thống')
                 ->descriptionIcon('heroicon-m-archive-box')
                 ->extraAttributes([
                     'class' => 'widget-with-bg-icon widget-blue widget-card',
                 ]),
 
-            Stat::make('Tổng số tài liệu', Document::count())
+            Stat::make('Tổng số tài liệu', $documentQuery->count())
                 ->description('Tất cả tài liệu đã lưu')
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('primary'),

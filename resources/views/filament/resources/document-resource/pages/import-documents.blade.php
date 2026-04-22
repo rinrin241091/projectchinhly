@@ -1,7 +1,18 @@
 <x-filament::page>
     <div class="max-w-4xl mx-auto">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Import Tài Liệu Từ CSV</h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Import Tài Liệu</h2>
+                <button
+                    wire:click="downloadTemplate"
+                    class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Tải mẫu Excel
+                </button>
+            </div>
             
             <div class="mb-6">
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
@@ -14,16 +25,17 @@
                         <div class="ml-3">
                             <h3 class="text-sm font-medium text-blue-800">Hướng dẫn import</h3>
                             <div class="mt-2 text-sm text-blue-700">
-                                <p>File CSV cần có các cột sau:</p>
+                                <p class="mb-2">Hỗ trợ file <strong>Excel (.xlsx)</strong> và <strong>CSV</strong>. Bấm <strong>"Tải mẫu Excel"</strong> để tải file mẫu.</p>
+                                <p class="mb-1">Các cột trong file mẫu giống với file xuất Excel:</p>
                                 <ul class="list-disc list-inside mt-1 space-y-1">
-                                    <li><strong>document_code</strong>: Số ký hiệu văn bản (bắt buộc)</li>
-                                    <li><strong>document_date</strong>: Ngày tháng văn bản (YYYY-MM-DD)</li>
-                                    <li><strong>description</strong>: Trích yếu nội dung (bắt buộc)</li>
-                                    <li><strong>author</strong>: Tác giả</li>
-                                    <li><strong>page_number</strong>: Số tờ</li>
-                                    <li><strong>note</strong>: Ghi chú</li>
-                                    <li><strong>archive_record_reference</strong>: Mã hồ sơ liên kết (bắt buộc)</li>
-                                    <li><strong>doc_type_name</strong>: Tên loại văn bản (bắt buộc)</li>
+                                    <li><strong>Số, Ký hiệu</strong>: Số ký hiệu văn bản</li>
+                                    <li><strong>Ngày tháng văn bản</strong>: Định dạng dd/mm/yyyy</li>
+                                    <li><strong>Trích yếu nội dung</strong>: Nội dung trích yếu</li>
+                                    <li><strong>Tác giả</strong>: Tác giả văn bản</li>
+                                    <li><strong>Tờ số / Trang số</strong>: Số tờ (VD: 1 - 5)</li>
+                                    <li><strong>Ghi chú</strong>: Ghi chú</li>
+                                    <li><strong>Mã hồ sơ</strong>: Mã hoặc ID hồ sơ liên kết <span class="text-red-600 font-semibold">(bắt buộc)</span></li>
+                                    <li><strong>Loại văn bản</strong>: Tên loại văn bản (tự tạo nếu chưa có)</li>
                                 </ul>
                             </div>
                         </div>
@@ -41,9 +53,11 @@
                             <h3 class="text-sm font-medium text-yellow-800">Lưu ý</h3>
                             <div class="mt-2 text-sm text-yellow-700">
                                 <ul class="list-disc list-inside space-y-1">
-                                    <li>Mã hồ sơ liên kết phải tồn tại trong hệ thống1</li>
+                                    <li>Bạn có thể dùng file Excel đã xuất từ hệ thống, thêm 2 cột <strong>"Mã hồ sơ"</strong> và <strong>"Loại văn bản"</strong> rồi import lại</li>
+                                    <li>Mã hồ sơ có thể là ID, mã hồ sơ (code), hoặc mã tham chiếu (reference_code)</li>
                                     <li>Loại văn bản sẽ được tự động tạo nếu chưa tồn tại</li>
-                                    <li>File CSV nên có dung lượng dưới 10MB</li>
+                                    <li>Dòng ví dụ (chữ nghiêng màu xám) trong file mẫu sẽ được bỏ qua tự động</li>
+                                    <li>File nên có dung lượng dưới 10MB</li>
                                 </ul>
                             </div>
                         </div>
@@ -84,7 +98,7 @@
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-blue-800">File đã được lưu</h3>
                         <div class="mt-2 text-sm text-blue-700">
-                            <p>File <strong>{{ session('pending_import.original_name') }}</strong> đã được lưu thành công và sẵn sàng để import.</p>
+                            <p><strong>{{ session('pending_import.file_count', 1) }}</strong> file đã được lưu thành công và sẵn sàng để import.</p>
                         </div>
                     </div>
                 </div>
